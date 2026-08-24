@@ -421,10 +421,6 @@
     window.dbOnValue = onValue;
     window.dbRemove = remove;
 
-    if (!window.deviceSessionId) {
-        window.deviceSessionId = 'dev_' + Math.random().toString(36).substring(2) + Date.now();
-    }
-
     // Real-Time Firebase Listener
     onValue(ref(db, 'rocketData'), (snapshot) => {
         if (snapshot.exists()) {
@@ -434,28 +430,18 @@
             if(serverData.deposits) deposits = serverData.deposits;
             if(serverData.withdraws) withdraws = serverData.withdraws;
             if(serverData.chats) chats = serverData.chats;
-            if(serverData.activeSessions) activeSessions = serverData.activeSessions;
             if(serverData.betHistory) betHistory = serverData.betHistory;
             
-            // Global Force Crash Check from Admin
+            if(serverData.activeControlMode !== undefined) activeControlMode = serverData.activeControlMode;
+            if(serverData.preset5List) preset5List = serverData.preset5List;
+            if(serverData.presetIndex !== undefined) presetIndex = serverData.presetIndex;
+
             if(serverData.forceCrashSignal && gameState === 'FLYING') {
                 triggerGlobalCrashExecution();
             }
 
             if(currentUser) {
                 let currentPhone = currentUser.phone;
-                if (activeSessions && activeSessions[currentPhone] && activeSessions[currentPhone] !== window.deviceSessionId) {
-                    currentUser = null;
-                    localStorage.removeItem('av_curr');
-                    stopRocketThrustSound();
-                    if(countdownTimer) clearInterval(countdownTimer);
-                    gameState = 'WAITING';
-                    showPopup("Logged Out", "Aapka account kisi doosri device par login ho gaya hai!", () => {
-                        showScreen('signupScreen');
-                    });
-                    return;
-                }
-
                 let updatedCurr = users.find(u => u.phone === currentPhone);
                 if(updatedCurr) {
                     currentUser = updatedCurr;
@@ -528,7 +514,6 @@
     let deposits = JSON.parse(localStorage.getItem('av_deps')) || [];
     let withdraws = JSON.parse(localStorage.getItem('av_withs')) || [];
     let chats = JSON.parse(localStorage.getItem('av_chats')) || {}; 
-    let activeSessions = JSON.parse(localStorage.getItem('av_sessions')) || {};
     let currentUser = JSON.parse(localStorage.getItem('av_curr')) || null;
     let betHistory = JSON.parse(localStorage.getItem('av_history')) || [1.82, 2.45, 1.12, 5.20, 3.10, 1.40, 8.90, 1.25];
 
@@ -769,7 +754,6 @@
         };
         users.push(newUser);
         currentUser = newUser;
-        activeSessions[phone] = window.deviceSessionId;
         
         saveData();
         tempDpBase64 = "";
@@ -792,7 +776,6 @@
         if(user.pass !== pass) return showPopup("Error", "Incorrect Password!");
 
         currentUser = user;
-        activeSessions[phone] = window.deviceSessionId;
         
         saveData();
         showScreen('mainScreen');
@@ -802,10 +785,6 @@
         stopRocketThrustSound();
         if(countdownTimer) clearInterval(countdownTimer);
         gameState = 'WAITING';
-        
-        if(currentUser) {
-            delete activeSessions[currentUser.phone];
-        }
 
         toggleSidebar();
         currentUser = null;
@@ -829,7 +808,6 @@
         localStorage.setItem('av_deps', JSON.stringify(deposits));
         localStorage.setItem('av_withs', JSON.stringify(withdraws));
         localStorage.setItem('av_chats', JSON.stringify(chats));
-        localStorage.setItem('av_sessions', JSON.stringify(activeSessions));
         localStorage.setItem('av_history', JSON.stringify(betHistory));
         if(currentUser) localStorage.setItem('av_curr', JSON.stringify(currentUser));
         
@@ -840,8 +818,10 @@
                 deposits: deposits,
                 withdraws: withdraws,
                 chats: chats,
-                activeSessions: activeSessions,
                 betHistory: betHistory,
+                activeControlMode: activeControlMode,
+                preset5List: preset5List,
+                presetIndex: presetIndex,
                 forceCrashSignal: window.forceCrashSignalValue || false
             }).catch(err => console.log("Firebase sync error:", err));
         }
@@ -1285,12 +1265,14 @@
         activeControlMode = document.getElementById('adminControlMode').value;
         document.getElementById('mode2Box').style.display = (activeControlMode === "2") ? "block" : "none";
         document.getElementById('mode3Box').style.display = (activeControlMode === "3") ? "block" : "none";
+        saveData();
     }
 
     function savePreset5Bets() {
         let val = document.getElementById('preset5BetsInput').value;
         preset5List = val.split(',').map(x => parseFloat(x.trim()) || 1.50);
         presetIndex = 0;
+        saveData();
         document.getElementById('presetStatusTxt').innerText = `Saved ${preset5List.length} bets sequence!`;
     }
 
