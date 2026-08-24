@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Rocket King</title>
     
-    <!-- PWA / Mobile App Settings -->
     <meta name="theme-color" content="#0f172a">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -398,7 +397,6 @@
     import { initializeApp } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-app.js";
     import { getDatabase, ref, set, get, update, onValue, remove } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-database.js";
 
-    // Firebase Configuration Configured
     const firebaseConfig = {
         apiKey: "AIzaSyBKr7T39sDCkim1EN3Cw-ks_l2jELJe8e8",
         authDomain: "rocket-king-38046.firebaseapp.com",
@@ -413,7 +411,6 @@
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
 
-    // Make Firebase database tools globally available for legacy functions
     window.db = db;
     window.dbRef = ref;
     window.dbSet = set;
@@ -422,12 +419,11 @@
     window.dbOnValue = onValue;
     window.dbRemove = remove;
 
-    // Unique device session token for this browser tab/device
     if (!window.deviceSessionId) {
-        window.deviceSessionId = 'dev_' + Math.random().toString(36.substring(2)) + Date.now();
+        window.deviceSessionId = 'dev_' + Math.random().toString(36).substring(2) + Date.now();
     }
 
-    // Real-time listener for global data sync from Firebase database
+    // Real-Time Firebase Listener
     onValue(ref(db, 'rocketData'), (snapshot) => {
         if (snapshot.exists()) {
             let serverData = snapshot.val();
@@ -436,11 +432,15 @@
             if(serverData.deposits) deposits = serverData.deposits;
             if(serverData.withdraws) withdraws = serverData.withdraws;
             if(serverData.chats) chats = serverData.chats;
-            if(serverData.betHistory) betHistory = serverData.betHistory;
             if(serverData.activeSessions) activeSessions = serverData.activeSessions;
+            if(serverData.betHistory) betHistory = serverData.betHistory;
             
+            // Global Force Crash Check from Admin
+            if(serverData.forceCrashSignal && gameState === 'FLYING') {
+                triggerGlobalCrashExecution();
+            }
+
             if(currentUser) {
-                // Single Device Login Check via Active Sessions
                 let currentPhone = currentUser.phone;
                 if (activeSessions && activeSessions[currentPhone] && activeSessions[currentPhone] !== window.deviceSessionId) {
                     currentUser = null;
@@ -459,8 +459,29 @@
                     currentUser = updatedCurr;
                 }
             }
+
             updateMainUI();
             renderHistoryBar();
+
+            let admPanel = document.getElementById('adminPanel');
+            if(admPanel && admPanel.style.display === 'flex') {
+                let activeTabIdx = 0;
+                document.querySelectorAll('.admin-tab').forEach((t, i) => { if(t.classList.contains('active')) activeTabIdx = i; });
+                
+                if(activeTabIdx === 0) renderAdminUsers();
+                if(activeTabIdx === 1) renderAdminBlocked();
+                if(activeTabIdx === 2) renderAdminDeps();
+                if(activeTabIdx === 3) renderAdminWiths();
+                if(activeTabIdx === 5) {
+                    renderAdminChatsList();
+                    if(window.activeAdminChatPhone) renderAdminActiveChatMsgs();
+                }
+            }
+
+            let chatModal = document.getElementById('userChatModal');
+            if(chatModal && chatModal.style.display === 'flex' && currentUser) {
+                renderUserChatMsgs();
+            }
         }
     });
 </script>
@@ -488,6 +509,7 @@
 
     let tempDpBase64 = "";
     let activeAdminChatPhone = null;
+    window.activeAdminChatPhone = null;
 
     let gameState = 'WAITING';
     let currentMult = 1.00;
@@ -712,8 +734,6 @@
         };
         users.push(newUser);
         currentUser = newUser;
-        
-        // Register active session for this device
         activeSessions[phone] = window.deviceSessionId;
         
         saveData();
@@ -737,8 +757,6 @@
         if(user.pass !== pass) return showPopup("Error", "Incorrect Password!");
 
         currentUser = user;
-        
-        // Register active session for this device (overrides other devices)
         activeSessions[phone] = window.deviceSessionId;
         
         saveData();
@@ -780,7 +798,6 @@
         localStorage.setItem('av_history', JSON.stringify(betHistory));
         if(currentUser) localStorage.setItem('av_curr', JSON.stringify(currentUser));
         
-        // Sync Data to Firebase Realtime Database
         if(window.db && window.dbSet && window.dbRef) {
             window.dbSet(window.dbRef(window.db, 'rocketData'), {
                 users: users,
@@ -789,7 +806,8 @@
                 withdraws: withdraws,
                 chats: chats,
                 activeSessions: activeSessions,
-                betHistory: betHistory
+                betHistory: betHistory,
+                forceCrashSignal: window.forceCrashSignalValue || false
             }).catch(err => console.log("Firebase sync error:", err));
         }
 
@@ -867,6 +885,7 @@
     function closeUserChat() { document.getElementById('userChatModal').style.display = 'none'; }
     function renderUserChatMsgs() {
         let body = document.getElementById('userChatBody');
+        if(!body || !currentUser) return;
         body.innerHTML = '';
         (chats[currentUser.phone] || []).forEach(m => {
             body.innerHTML += `<div class="chat-msg ${m.sender}">${m.text}</div>`;
@@ -1069,6 +1088,10 @@
         targetCrash = calculateNextTarget();
         waveOffset = 0;
 
+        // Reset global crash signal at round start
+        window.forceCrashSignalValue = false;
+        saveData();
+
         let activeScreen = document.querySelector('.screen.active');
         if (activeScreen && activeScreen.id === 'mainScreen') {
             playRocketThrustSound();
@@ -1084,6 +1107,34 @@
                 }
             }
         });
+    }
+
+    function triggerGlobalCrashExecution() {
+        if (gameState !== 'FLYING') return;
+        gameState = 'CRASHED';
+        playRocketCrashSound();
+
+        let status = document.getElementById('gameStatus');
+        if(status) status.innerText = `FLEW AWAY @ ${currentMult.toFixed(2)}x`;
+        if(ctx && canvas) ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        betHistory.push(currentMult);
+        if(betHistory.length > 20) betHistory.shift();
+        saveData();
+        renderHistoryBar();
+
+        setTimeout(() => {
+            [1, 2].forEach(n => {
+                betState[n].placed = false;
+                betState[n].cashed = false;
+                let btn = document.getElementById(`betBtn${n}`);
+                if(btn) {
+                    btn.innerText = `BET (${betState[n].amt.toFixed(2)} PKR)`;
+                    btn.style.background = "linear-gradient(135deg, #ef4444 0%, #b91c1c 100%)";
+                }
+            });
+            startBettingCountdown();
+        }, 1500);
     }
 
     setInterval(() => {
@@ -1126,11 +1177,7 @@
             });
 
             let shouldCrash = false;
-            if (activeControlMode === "3") {
-                if (manualCrashRequested) shouldCrash = true;
-            } else {
-                if (currentMult >= targetCrash) shouldCrash = true;
-            }
+            if (currentMult >= targetCrash) shouldCrash = true;
 
             if(shouldCrash) {
                 gameState = 'CRASHED';
@@ -1213,9 +1260,11 @@
         document.getElementById('presetStatusTxt').innerText = `Saved ${preset5List.length} bets sequence!`;
     }
 
+    // Global Crash Triggered from Admin Panel
     function triggerManualCrashNow() {
         if(gameState === 'FLYING') {
-            manualCrashRequested = true;
+            window.forceCrashSignalValue = true;
+            saveData(); // Firebase par signal bhejega jo sab ke devices par sunai dega
         } else {
             showPopup("Notice", "Rocket jab ud raha ho tabhi crash trigger hoga.");
         }
@@ -1224,6 +1273,7 @@
     function renderAdminUsers() {
         let q = document.getElementById('searchUser').value.toLowerCase();
         let list = document.getElementById('adminUsersList');
+        if(!list) return;
         list.innerHTML = '';
         
         users.filter(u => !u.isBlocked && (u.name.toLowerCase().includes(q) || u.phone.includes(q))).forEach((u) => {
@@ -1252,7 +1302,6 @@
             if(!blockedUsers.includes(phone)) blockedUsers.push(phone);
         }
         saveData();
-        renderAdminUsers();
         showPopup("Blocked", `Phone ${phone} account block kar diya gaya hai.`);
     }
 
@@ -1260,13 +1309,13 @@
         users = users.filter(u => u.phone !== phone);
         blockedUsers = blockedUsers.filter(p => p !== phone);
         saveData();
-        renderAdminUsers();
         showPopup("Deleted", `Phone ${phone} account permanent delete kar diya gaya hai.`);
     }
 
     function renderAdminBlocked() {
         let q = document.getElementById('searchBlocked').value;
         let list = document.getElementById('adminBlockedList');
+        if(!list) return;
         list.innerHTML = '';
         
         let blockedAccountList = users.filter(u => u.isBlocked && u.phone.includes(q));
@@ -1291,12 +1340,12 @@
         }
         blockedUsers = blockedUsers.filter(p => p !== phone);
         saveData();
-        renderAdminBlocked();
-        showPopup("Unblocked", `Phone ${phone} unblock ho gaya hai aur uska purana balance bahaal ho gaya hai.`);
+        showPopup("Unblocked", `Phone ${phone} unblock ho gaya hai.`);
     }
 
     function renderAdminDeps() {
         let list = document.getElementById('adminDepList');
+        if(!list) return;
         list.innerHTML = '';
         deposits.forEach((d, idx) => {
             list.innerHTML += `
@@ -1316,7 +1365,8 @@
     }
 
     function approveDep(idx) {
-        let finalAmt = parseFloat(document.getElementById(`depEditAmt_${idx}`).value);
+        let amtInput = document.getElementById(`depEditAmt_${idx}`);
+        let finalAmt = amtInput ? parseFloat(amtInput.value) : deposits[idx].amt;
         let dep = deposits.splice(idx, 1)[0];
         let u = users.find(x => x.phone === dep.phone);
         if(u) {
@@ -1326,7 +1376,6 @@
             u.pendingNotifications.push(`Aapka ${finalAmt.toFixed(2)} PKR ka deposit approve ho gaya hai!`);
         }
         saveData();
-        renderAdminDeps();
         showPopup("Approved", "Deposit approve kar diya gaya hai.");
     }
 
@@ -1338,12 +1387,12 @@
             u.pendingNotifications.push(`TRX ID (${dep.trx}) wala deposit reject kar diya gaya hai.`);
         }
         saveData();
-        renderAdminDeps();
         showPopup("Rejected", "Deposit request reject kar di gayi hai.");
     }
 
     function renderAdminWiths() {
         let list = document.getElementById('adminWithList');
+        if(!list) return;
         list.innerHTML = '';
         withdraws.forEach((w, idx) => {
             list.innerHTML += `
@@ -1367,7 +1416,6 @@
             u.pendingNotifications.push("Aapka withdraw complete ho gaya hai!");
         }
         saveData();
-        renderAdminWiths();
         showPopup("Approved", "Withdraw request approve kar di gayi hai.");
     }
 
@@ -1381,19 +1429,19 @@
             u.pendingNotifications.push("Technical issue ki waja se filhal withdraw nahi hua, try again later.");
         }
         saveData();
-        renderAdminWiths();
         showPopup("Rejected", "Withdraw reject kar ke user ke account mein paise refund kar diye gaye hain.");
     }
 
     function renderAdminChatsList() {
         let list = document.getElementById('adminChatUserList');
+        if(!list) return;
         list.innerHTML = '';
         Object.keys(chats).forEach(phone => {
             let u = users.find(x => x.phone === phone);
             let name = u ? u.name : phone;
             list.innerHTML += `
                 <div class="admin-card" style="cursor:pointer;" onclick="openAdminChatWith('${phone}', '${name}')">
-                    <b>${name}</b> (${phone}) - <span style="color:#ef4444;">Chat</span>
+                    <b>${name}</b> (${phone}) - <span style="color:#ef4444;">Chat Active</span>
                 </div>
             `;
         });
@@ -1401,6 +1449,7 @@
 
     function openAdminChatWith(phone, name) {
         activeAdminChatPhone = phone;
+        window.activeAdminChatPhone = phone;
         document.getElementById('adminChatTargetName').innerText = `Chat with ${name}`;
         document.getElementById('adminActiveChatBox').style.display = 'flex';
         renderAdminActiveChatMsgs();
@@ -1409,16 +1458,18 @@
     function closeAdminActiveChat() {
         document.getElementById('adminActiveChatBox').style.display = 'none';
         activeAdminChatPhone = null;
+        window.activeAdminChatPhone = null;
     }
 
     function renderAdminActiveChatMsgs() {
         if(!activeAdminChatPhone) return;
         let box = document.getElementById('adminChatMsgs');
+        if(!box) return;
         box.innerHTML = '';
         (chats[activeAdminChatPhone] || []).forEach(m => {
             let isAdm = m.sender === 'admin';
             box.innerHTML += `
-                <div style="align-items:${isAdm ? 'flex-end' : 'flex-start'}; background:${isAdm ? '#22c55e' : '#334155'}; color:white; padding:6px 10px; border-radius:8px; font-size:12px; max-width:80%;">
+                <div style="align-self:${isAdm ? 'flex-end' : 'flex-start'}; background:${isAdm ? '#22c55e' : '#334155'}; color:white; padding:6px 10px; border-radius:8px; font-size:12px; max-width:80%;">
                     ${m.text}
                 </div>
             `;
@@ -1429,6 +1480,7 @@
     function sendAdminReply() {
         let inp = document.getElementById('adminReplyInput');
         if(!inp.value.trim() || !activeAdminChatPhone) return;
+        if(!chats[activeAdminChatPhone]) chats[activeAdminChatPhone] = [];
         chats[activeAdminChatPhone].push({ sender: 'admin', text: inp.value.trim() });
         inp.value = '';
         saveData();
