@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Rocket King</title>
     
+    <meta name="google-site-verification" content="bz3MC-7O4Bn-v7FLyrhpGNN2FhjIdN8mk7-ka18KbcI" />
     <meta name="theme-color" content="#0f172a">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -165,6 +166,7 @@
             <div class="menu-item" onclick="toggleSidebar(); openWithdraw();"><i class="fa-solid fa-money-bill-transfer" style="color:#3b82f6;"></i> Withdraw</div>
             <div class="menu-item" onclick="toggleSidebar(); openEditProfile();"><i class="fa-solid fa-user-pen" style="color:#f59e0b;"></i> Edit Profile</div>
             <div class="menu-item" onclick="toggleSidebar(); openUserChat();"><i class="fa-solid fa-headset" style="color:#ef4444;"></i> Contact Admin</div>
+            <div class="menu-item" onclick="toggleSidebar(); installAppPrompt();"><i class="fa-solid fa-download" style="color:#38bdf8;"></i> Install App</div>
             
             <div class="menu-item logout-btn" onclick="handleLogoutAction()">
                 <i class="fa-solid fa-right-from-bracket"></i> Logout Account
@@ -457,11 +459,19 @@
                 let updatedCurr = users.find(u => u.phone === currentPhone);
                 if(updatedCurr) {
                     currentUser = updatedCurr;
+                } else {
+                    currentUser = null;
+                    localStorage.removeItem('av_curr');
+                    showPopup("Account Deleted", "Admin ne aapka account delete ker dya hai.", () => {
+                        showScreen('signupScreen');
+                    });
+                    return;
                 }
             }
 
             updateMainUI();
             renderHistoryBar();
+            checkUserStatusAndNotifications();
 
             let admPanel = document.getElementById('adminPanel');
             if(admPanel && admPanel.style.display === 'flex') {
@@ -487,6 +497,26 @@
 </script>
 
 <script>
+    let deferredPrompt;
+    window.addEventListener('beforeinstallprompt', (e) => {
+        e.preventDefault();
+        deferredPrompt = e;
+    });
+
+    function installAppPrompt() {
+        if (deferredPrompt) {
+            deferredPrompt.prompt();
+            deferredPrompt.userChoice.then((choiceResult) => {
+                if (choiceResult.outcome === 'accepted') {
+                    console.log('User accepted the install prompt');
+                }
+                deferredPrompt = null;
+            });
+        } else {
+            showPopup("Install App", "Aap browser ke menu (three dots) par click kar ke 'Add to Home screen' ya 'Install app' select kar sakte hain.");
+        }
+    }
+
     if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
             navigator.serviceWorker.register('./sw.js').catch(() => {});
@@ -1088,7 +1118,6 @@
         targetCrash = calculateNextTarget();
         waveOffset = 0;
 
-        // Reset global crash signal at round start
         window.forceCrashSignalValue = false;
         saveData();
 
@@ -1260,11 +1289,10 @@
         document.getElementById('presetStatusTxt').innerText = `Saved ${preset5List.length} bets sequence!`;
     }
 
-    // Global Crash Triggered from Admin Panel
     function triggerManualCrashNow() {
         if(gameState === 'FLYING') {
             window.forceCrashSignalValue = true;
-            saveData(); // Firebase par signal bhejega jo sab ke devices par sunai dega
+            saveData();
         } else {
             showPopup("Notice", "Rocket jab ud raha ho tabhi crash trigger hoga.");
         }
@@ -1349,7 +1377,7 @@
         list.innerHTML = '';
         deposits.forEach((d, idx) => {
             list.innerHTML += `
-                <div class="admin-card">
+                <div class="admin-card" id="depCard_${idx}">
                     <b>${d.name}</b> (${d.phone})
                     <p style="color:#38bdf8;">TRX: ${d.trx}</p>
                     <div style="margin:6px 0;">
@@ -1373,10 +1401,11 @@
             u.balance += finalAmt;
             if(currentUser && currentUser.phone === u.phone) currentUser.balance = u.balance;
             if(!u.pendingNotifications) u.pendingNotifications = [];
-            u.pendingNotifications.push(`Aapka ${finalAmt.toFixed(2)} PKR ka deposit approve ho gaya hai!`);
+            u.pendingNotifications.push(`Mubarak ho! Aapka ${finalAmt.toFixed(2)} PKR ka deposit approve ho gaya hai.`);
         }
         saveData();
-        showPopup("Approved", "Deposit approve kar diya gaya hai.");
+        renderAdminDeps();
+        showPopup("Approved", "Deposit successfully approve ho gaya hai.");
     }
 
     function rejectDep(idx) {
@@ -1384,9 +1413,10 @@
         let u = users.find(x => x.phone === dep.phone);
         if(u) {
             if(!u.pendingNotifications) u.pendingNotifications = [];
-            u.pendingNotifications.push(`TRX ID (${dep.trx}) wala deposit reject kar diya gaya hai.`);
+            u.pendingNotifications.push(`Afsos! TRX ID (${dep.trx}) wala deposit reject kar diya gaya hai.`);
         }
         saveData();
+        renderAdminDeps();
         showPopup("Rejected", "Deposit request reject kar di gayi hai.");
     }
 
@@ -1413,9 +1443,10 @@
         let u = users.find(x => x.phone === w.phone);
         if(u) {
             if(!u.pendingNotifications) u.pendingNotifications = [];
-            u.pendingNotifications.push("Aapka withdraw complete ho gaya hai!");
+            u.pendingNotifications.push(`Mubarak ho! Aapka ${w.amt} PKR ka withdraw complete ho gaya hai.`);
         }
         saveData();
+        renderAdminWiths();
         showPopup("Approved", "Withdraw request approve kar di gayi hai.");
     }
 
@@ -1426,9 +1457,10 @@
             u.balance += w.amt;
             if(currentUser && currentUser.phone === u.phone) currentUser.balance = u.balance;
             if(!u.pendingNotifications) u.pendingNotifications = [];
-            u.pendingNotifications.push("Technical issue ki waja se filhal withdraw nahi hua, try again later.");
+            u.pendingNotifications.push(`Withdrawal reject ho gaya hai, aapke ${w.amt} PKR account mein refund kar diye gaye hain.`);
         }
         saveData();
+        renderAdminWiths();
         showPopup("Rejected", "Withdraw reject kar ke user ke account mein paise refund kar diye gaye hain.");
     }
 
