@@ -745,6 +745,11 @@
 
         if(!name || !phone || !pass) return showPopup("Error", "All fields are required.");
         
+        if (currentUser && currentUser.phone === phone) {
+            showScreen('mainScreen');
+            return;
+        }
+
         let existingUser = users.find(u => u.phone === phone);
         if(existingUser) {
             if(existingUser.isBlocked || blockedUsers.includes(phone)) {
