@@ -26,7 +26,7 @@
         .screen.active { display: flex; }
 
         .auth-box { padding: 30px 20px; display: flex; flex-direction: column; justify-content: center; flex: 1; }
-        .auth-logo { text-align: center; font-size: 32px; font-weight: 900; font-style: italic; color: #ef4444; margin-bottom: 25px; cursor: pointer; }
+        .auth-logo { text-align: center; font-size: 32px; font-weight: 900; font-style: italic; color: #ef4444; margin-bottom: 25px; }
         .input-group { margin-bottom: 14px; }
         .input-group label { display: block; font-size: 12px; color: #94a3b8; margin-bottom: 5px; font-weight: 600; }
         .input-group input, .input-group select {
@@ -92,10 +92,6 @@
             border: 1px solid #ef4444;
             font-weight: bold;
         }
-        .menu-item.logout-btn:hover {
-            background: #ef4444 !important;
-            color: white !important;
-        }
 
         .game-arena { height: 230px; background: radial-gradient(circle at center, #2e0816 0%, #0b0e14 100%); position: relative; border-bottom: 2px solid #1e293b; overflow: hidden; }
         #gameCanvas { width: 100%; height: 100%; display: block; }
@@ -116,14 +112,6 @@
         .chat-msg.user { background: #ef4444; color: white; align-self: flex-end; }
         .chat-msg.admin { background: #334155; color: white; align-self: flex-start; }
         .chat-footer { padding: 10px 15px; background: #0f172a; display: flex; gap: 8px; border-top: 1px solid #334155; }
-
-        .admin-panel { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #070a0f; z-index: 1100; display: none; flex-direction: column; }
-        .admin-nav { display: flex; background: #1e293b; overflow-x: auto; border-bottom: 1px solid #334155; }
-        .admin-tab { padding: 12px 14px; font-size: 11px; font-weight: bold; color: #94a3b8; cursor: pointer; white-space: nowrap; }
-        .admin-tab.active { color: #ef4444; border-bottom: 2px solid #ef4444; background: rgba(239, 68, 68, 0.1); }
-        .admin-content { padding: 15px; flex: 1; overflow-y: auto; }
-        .search-bar { width: 100%; padding: 10px; background: #1e293b; border: 1px solid #334155; border-radius: 8px; color: white; font-size: 13px; margin-bottom: 12px; outline: none; }
-        .admin-card { background: #1e293b; border: 1px solid #334155; border-radius: 10px; padding: 12px; margin-bottom: 10px; font-size: 12px; }
     </style>
 </head>
 <body onclick="initAudioEngine()">
@@ -135,20 +123,6 @@
             <div class="modal-title" id="popTitle">Notice</div>
             <div class="modal-desc" id="popMsg">Message details here...</div>
             <button class="btn-custom" id="popBtn" onclick="closePopup()">OK</button>
-        </div>
-    </div>
-
-    <div class="modal-overlay" id="adminPassModal">
-        <div class="modal-box">
-            <div class="modal-title">Admin Access</div>
-            <div class="modal-desc">Enter secret admin password:</div>
-            <div class="input-group">
-                <input type="password" id="adminPassInput" placeholder="Password" style="text-align: center;">
-            </div>
-            <div style="display: flex; gap: 8px;">
-                <button class="btn-custom" style="background:#334155;" onclick="closeAdminPassModal()">Cancel</button>
-                <button class="btn-custom" onclick="verifyAdminPass()">Unlock</button>
-            </div>
         </div>
     </div>
 
@@ -176,7 +150,7 @@
 
     <div id="signupScreen" class="screen active">
         <div class="auth-box">
-            <div class="auth-logo" id="signupLogoSecretClick"><i class="fa-solid fa-rocket"></i> Rocket King</div>
+            <div class="auth-logo"><i class="fa-solid fa-rocket"></i> Rocket King</div>
             <div class="dp-upload-container">
                 <img src="https://cdn-icons-png.flaticon.com/512/149/149071.png" class="dp-preview" id="signupDpPreview">
                 <label class="dp-btn">Choose Photo <input type="file" id="signupDpInput" accept="image/*" style="display: none;" onchange="previewDP(this, 'signupDpPreview')"></label>
@@ -193,7 +167,7 @@
 
     <div id="loginScreen" class="screen">
         <div class="auth-box">
-            <div class="auth-logo" id="loginLogoSecretClick"><i class="fa-solid fa-rocket"></i> Rocket King</div>
+            <div class="auth-logo"><i class="fa-solid fa-rocket"></i> Rocket King</div>
             <div class="input-group"><label>Phone Number</label><input type="number" id="loginPhone" placeholder="03001234567"></div>
             <div class="input-group"><label>Password</label><input type="password" id="loginPass" placeholder="••••••••"></div>
             <button class="btn-custom" onclick="handleLogin()">Login</button>
@@ -206,7 +180,7 @@
     <div id="mainScreen" class="screen">
         <div class="top-bar">
             <i class="fa-solid fa-bars" style="font-size:20px; cursor:pointer;" onclick="toggleSidebar()"></i>
-            <span style="font-weight:900; font-style:italic; color:#ef4444; font-size:20px; cursor:pointer;" id="logoSecretClick"><i class="fa-solid fa-rocket"></i> Rocket King</span>
+            <span style="font-weight:900; font-style:italic; color:#ef4444; font-size:20px;"><i class="fa-solid fa-rocket"></i> Rocket King</span>
             <div class="top-actions">
                 <div class="balance-chip" id="mainBalanceDisplay">0.00 PKR</div>
                 <button class="btn-dep-head" onclick="openDeposit()">Deposit</button>
@@ -322,76 +296,6 @@
         </div>
     </div>
 
-    <div class="admin-panel" id="adminPanel">
-        <div class="top-bar">
-            <h3 style="color:#ef4444;"><i class="fa-solid fa-user-shield"></i> Admin Panel</h3>
-            <button class="btn-custom" style="width:auto; padding:5px 10px; font-size:11px;" onclick="closeAdmin()">Close</button>
-        </div>
-        <div class="admin-nav">
-            <div class="admin-tab active" onclick="switchAdminTab(0)">Users</div>
-            <div class="admin-tab" onclick="switchAdminTab(1)">Blocked Users</div>
-            <div class="admin-tab" onclick="switchAdminTab(2)">Deposits</div>
-            <div class="admin-tab" onclick="switchAdminTab(3)">Withdraws</div>
-            <div class="admin-tab" onclick="switchAdminTab(4)">3 Bet Control Modes</div>
-            <div class="admin-tab" onclick="switchAdminTab(5)">Support Chat</div>
-        </div>
-
-        <div class="admin-content" id="admTab0">
-            <input type="text" class="search-bar" id="searchUser" placeholder="Search user..." oninput="renderAdminUsers()">
-            <div id="adminUsersList"></div>
-        </div>
-
-        <div class="admin-content" id="admTab1" style="display:none;">
-            <input type="text" class="search-bar" id="searchBlocked" placeholder="Search blocked..." oninput="renderAdminBlocked()">
-            <div id="adminBlockedList"></div>
-        </div>
-
-        <div class="admin-content" id="admTab2" style="display:none;"><div id="adminDepList"></div></div>
-        <div class="admin-content" id="admTab3" style="display:none;"><div id="adminWithList"></div></div>
-
-        <div class="admin-content" id="admTab4" style="display:none;">
-            <div class="admin-card">
-                <label style="font-weight:bold; font-size:14px; color:#ef4444;">Select Bet Control Mode:</label>
-                <select id="adminControlMode" onchange="updateAdminModeUI()" style="width:100%; padding:10px; background:#0f172a; border:1px solid #334155; color:white; border-radius:8px; margin:10px 0;">
-                    <option value="1">Mode 1: Auto / Random Crash</option>
-                    <option value="2">Mode 2: Preset Agli 5 Bets (Manual List)</option>
-                    <option value="3">Mode 3: Continuous Fly & Manual Crash Button</option>
-                </select>
-
-                <div id="mode2Box" style="display:none; margin-top:10px;">
-                    <label>Likhein agli 5 bets kahan crash hongi (Comma Seperated):</label>
-                    <input type="text" id="preset5BetsInput" value="1.50, 2.00, 1.20, 3.50, 1.80" style="width:100%; padding:8px; background:#0f172a; border:1px solid #334155; color:white; border-radius:6px; margin-top:5px;">
-                    <button class="btn-custom" style="margin-top:8px; padding:8px;" onclick="savePreset5Bets()">Save 5 Bets Array</button>
-                    <p id="presetStatusTxt" style="font-size:11px; color:#22c55e; margin-top:5px;"></p>
-                </div>
-
-                <div id="mode3Box" style="display:none; margin-top:10px; text-align:center;">
-                    <div style="background:#0f172a; border:1px solid #ef4444; border-radius:10px; padding:12px; margin-bottom:12px;">
-                        <span style="font-size:12px; color:#94a3b8;">Current Multiplier Status:</span>
-                        <h2 id="adminLiveMultTxt" style="font-size:28px; color:#ef4444; font-weight:900;">1.00x</h2>
-                    </div>
-                    <p style="color:#f59e0b; margin-bottom:10px; font-size:12px;">Rocket udta rahe ga jab tak aap nahi dabayenge!</p>
-                    <button class="btn-custom" style="background: linear-gradient(135deg, #dc2626 0%, #991b1b 100%); font-size:16px; padding:15px;" onclick="triggerManualCrashNow()">🔥 CRASH ROCKET NOW 🔥</button>
-                </div>
-            </div>
-        </div>
-
-        <div class="admin-content" id="admTab5" style="display:none;">
-            <div id="adminChatUserList"></div>
-            <div id="adminActiveChatBox" style="display:none; flex-direction:column; height:300px; background:#1e293b; border-radius:10px; padding:10px; margin-top:10px;">
-                <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
-                    <b id="adminChatTargetName">User Chat</b>
-                    <i class="fa-solid fa-xmark" style="cursor:pointer;" onclick="closeAdminActiveChat()"></i>
-                </div>
-                <div id="adminChatMsgs" style="flex:1; overflow-y:auto; display:flex; flex-direction:column; gap:6px; margin-bottom:8px;"></div>
-                <div style="display:flex; gap:5px;">
-                    <input type="text" id="adminReplyInput" placeholder="Reply..." style="flex:1; padding:8px; background:#0f172a; border:1px solid #334155; color:white; border-radius:6px; outline:none;">
-                    <button class="btn-custom" style="width:auto; padding:8px 12px;" onclick="sendAdminReply()">Send</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
 </div>
 
 <!-- Firebase Modular SDK Scripts -->
@@ -459,21 +363,6 @@
             renderHistoryBar();
             checkUserStatusAndNotifications();
 
-            let admPanel = document.getElementById('adminPanel');
-            if(admPanel && admPanel.style.display === 'flex') {
-                let activeTabIdx = 0;
-                document.querySelectorAll('.admin-tab').forEach((t, i) => { if(t.classList.contains('active')) activeTabIdx = i; });
-                
-                if(activeTabIdx === 0) renderAdminUsers();
-                if(activeTabIdx === 1) renderAdminBlocked();
-                if(activeTabIdx === 2) renderAdminDeps();
-                if(activeTabIdx === 3) renderAdminWiths();
-                if(activeTabIdx === 5) {
-                    renderAdminChatsList();
-                    if(window.activeAdminChatPhone) renderAdminActiveChatMsgs();
-                }
-            }
-
             let chatModal = document.getElementById('userChatModal');
             if(chatModal && chatModal.style.display === 'flex' && currentUser) {
                 renderUserChatMsgs();
@@ -493,20 +382,11 @@
         if (deferredPrompt) {
             deferredPrompt.prompt();
             deferredPrompt.userChoice.then((choiceResult) => {
-                if (choiceResult.outcome === 'accepted') {
-                    console.log('User accepted the install prompt');
-                }
                 deferredPrompt = null;
             });
         } else {
-            showPopup("Install App", "Aap browser ke menu (three dots) par click kar ke 'Add to Home screen' ya 'Install app' select kar sakte hain.");
+            showPopup("Install App", "Aap browser ke menu (three dots) par click kar ke 'Add to Home screen' select kar sakte hain.");
         }
-    }
-
-    if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-            navigator.serviceWorker.register('./sw.js').catch(() => {});
-        });
     }
 
     let users = JSON.parse(localStorage.getItem('av_users')) || [];
@@ -520,12 +400,8 @@
     let activeControlMode = "1";
     let preset5List = [1.50, 2.00, 1.20, 3.50, 1.80];
     let presetIndex = 0;
-    let manualCrashRequested = false;
 
     let tempDpBase64 = "";
-    let activeAdminChatPhone = null;
-    window.activeAdminChatPhone = null;
-
     let gameState = 'WAITING';
     let currentMult = 1.00;
     let targetCrash = 2.00;
@@ -558,9 +434,7 @@
         let bufferSize = audioCtx.sampleRate * 2;
         let noiseBuffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
         let output = noiseBuffer.getChannelData(0);
-        for (let i = 0; i < bufferSize; i++) {
-            output[i] = Math.random() * 2 - 1;
-        }
+        for (let i = 0; i < bufferSize; i++) { output[i] = Math.random() * 2 - 1; }
 
         let whiteNoise = audioCtx.createBufferSource();
         whiteNoise.buffer = noiseBuffer;
@@ -604,9 +478,7 @@
         let bufferSize = audioCtx.sampleRate * 1;
         let noiseBuffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
         let output = noiseBuffer.getChannelData(0);
-        for (let i = 0; i < bufferSize; i++) {
-            output[i] = Math.random() * 2 - 1;
-        }
+        for (let i = 0; i < bufferSize; i++) { output[i] = Math.random() * 2 - 1; }
 
         let noise = audioCtx.createBufferSource();
         noise.buffer = noiseBuffer;
@@ -641,26 +513,19 @@
 
     function checkUserStatusAndNotifications() {
         if (!currentUser) return;
-
         let dbUser = users.find(u => u.phone === currentUser.phone);
         if (!dbUser) {
             currentUser = null;
             localStorage.removeItem('av_curr');
-            showPopup("Account Deleted", "Admin ne aapka account delete ker dya hai.", () => {
-                showScreen('signupScreen');
-            });
+            showPopup("Account Deleted", "Admin ne aapka account delete ker dya hai.", () => showScreen('signupScreen'));
             return;
         }
-
         if (dbUser.isBlocked || blockedUsers.includes(currentUser.phone)) {
             currentUser = null;
             localStorage.removeItem('av_curr');
-            showPopup("Blocked", "Admin ne aapka account block ker dya hai. Admin se rabta krein.", () => {
-                showScreen('signupScreen');
-            });
+            showPopup("Blocked", "Admin ne aapka account block ker dya hai.", () => showScreen('signupScreen'));
             return;
         }
-
         if (dbUser.pendingNotifications && dbUser.pendingNotifications.length > 0) {
             let msg = dbUser.pendingNotifications.shift();
             currentUser = dbUser;
@@ -730,23 +595,13 @@
 
         if(!name || !phone || !pass) return showPopup("Error", "All fields are required.");
         
-        if (currentUser && currentUser.phone === phone) {
-            showScreen('mainScreen');
-            return;
-        }
-
         let existingUser = users.find(u => u.phone === phone);
         if(existingUser) {
-            if(existingUser.isBlocked || blockedUsers.includes(phone)) {
-                return showPopup("Blocked", "Aapka account block hai. Pehle admin se unblock karwayein.");
-            }
             return showPopup("Exists", "Account pehle se majood hai. Login karein.", () => showScreen('loginScreen'));
         }
 
         let newUser = { 
-            name, 
-            phone, 
-            pass, 
+            name, phone, pass, 
             balance: 10.00,
             dp: tempDpBase64 || "https://cdn-icons-png.flaticon.com/512/149/149071.png",
             isBlocked: false,
@@ -754,7 +609,6 @@
         };
         users.push(newUser);
         currentUser = newUser;
-        
         saveData();
         tempDpBase64 = "";
         showScreen('mainScreen');
@@ -767,16 +621,11 @@
         if(!phone || !pass) return showPopup("Error", "Enter credentials.");
 
         let user = users.find(u => u.phone === phone);
-        if(!user) return showPopup("Not Found", "Account nahi mila! Pehle Sign Up karein.", () => showScreen('signupScreen'));
-        
-        if(user.isBlocked || blockedUsers.includes(phone)) {
-            return showPopup("Blocked", "Admin ne aapka account block ker dya hai. Admin se rabta krein.");
-        }
-
+        if(!user) return showPopup("Not Found", "Account nahi mila! Sign Up karein.", () => showScreen('signupScreen'));
+        if(user.isBlocked) return showPopup("Blocked", "Account block hai.");
         if(user.pass !== pass) return showPopup("Error", "Incorrect Password!");
 
         currentUser = user;
-        
         saveData();
         showScreen('mainScreen');
     }
@@ -785,11 +634,9 @@
         stopRocketThrustSound();
         if(countdownTimer) clearInterval(countdownTimer);
         gameState = 'WAITING';
-
         toggleSidebar();
         currentUser = null;
         localStorage.removeItem('av_curr');
-        saveData();
         showScreen('signupScreen');
     }
 
@@ -823,9 +670,8 @@
                 preset5List: preset5List,
                 presetIndex: presetIndex,
                 forceCrashSignal: window.forceCrashSignalValue || false
-            }).catch(err => console.log("Firebase sync error:", err));
+            }).catch(err => {});
         }
-
         updateMainUI();
     }
 
@@ -840,10 +686,7 @@
         currentUser.name = document.getElementById('editNameInput').value.trim();
         currentUser.dp = tempDpBase64;
         let dbUser = users.find(u => u.phone === currentUser.phone);
-        if(dbUser) {
-            dbUser.name = currentUser.name;
-            dbUser.dp = currentUser.dp;
-        }
+        if(dbUser) { dbUser.name = currentUser.name; dbUser.dp = currentUser.dp; }
         saveData();
         showPopup("Success", "Profile updated!", () => showScreen('mainScreen'));
     }
@@ -883,7 +726,7 @@
         let acc = document.getElementById('withAcc').value;
         let amt = parseFloat(document.getElementById('withAmt').value);
 
-        if(!acc || !amt || isNaN(amt) || amt <= 0) return showPopup("Error", "Sahi amount aur account details daalein.");
+        if(!acc || !amt || isNaN(amt) || amt <= 0) return showPopup("Error", "Sahi amount daalein.");
         if(currentUser.balance < amt) return showPopup("Error", "Insufficient Balance!");
 
         currentUser.balance -= amt;
@@ -892,8 +735,7 @@
 
         withdraws.push({ phone: currentUser.phone, name: currentUser.name, method, acc, amt });
         saveData();
-        
-        showPopup("Under Review", "Apka withdraw under review hai, jald hi update mil jaye gi.", () => showScreen('mainScreen'));
+        showPopup("Under Review", "Apka withdraw under review hai.", () => showScreen('mainScreen'));
     }
 
     function openUserChat() { document.getElementById('userChatModal').style.display = 'flex'; renderUserChatMsgs(); }
@@ -943,7 +785,7 @@
 
         if(gameState === 'WAITING') {
             if(!b.placed) {
-                if(currentUser.balance < b.amt) return showPopup("Low Balance", "Aapke paas balance kam hai.");
+                if(currentUser.balance < b.amt) return showPopup("Low Balance", "Balance kam hai.");
                 currentUser.balance -= b.amt;
                 let dbUser = users.find(u => u.phone === currentUser.phone);
                 if(dbUser) dbUser.balance = currentUser.balance;
@@ -986,7 +828,6 @@
             presetIndex = (presetIndex + 1) % preset5List.length;
             return target;
         } else if (activeControlMode === "3") {
-            manualCrashRequested = false;
             return 999999.00;
         }
         return 2.00;
@@ -1036,41 +877,19 @@
         ctx.fill();
         ctx.stroke();
 
-        ctx.fillStyle = '#dc2626';
-        ctx.beginPath();
-        ctx.moveTo(-5, -20);
-        ctx.lineTo(-38, -42);
-        ctx.lineTo(-30, -18);
-        ctx.closePath();
-        ctx.fill();
-
-        ctx.beginPath();
-        ctx.moveTo(-5, 20);
-        ctx.lineTo(-38, 42);
-        ctx.lineTo(-30, 18);
-        ctx.closePath();
-        ctx.fill();
-
         ctx.restore();
     }
 
     function renderCanvasScene(x, y) {
         if(!ctx || !canvas) return;
         ctx.clearRect(0, 0, canvas.width, canvas.height);
-
         if (gameState === 'FLYING') {
             ctx.beginPath();
             ctx.moveTo(10, canvas.height - 10);
             ctx.quadraticCurveTo(x / 2, canvas.height - 10, x - 25, y + 10);
-
-            let blinkOpacity = 0.4 + Math.abs(Math.sin(Date.now() / 100)) * 0.6;
-            ctx.strokeStyle = `rgba(239, 68, 68, ${blinkOpacity})`;
+            ctx.strokeStyle = `rgba(239, 68, 68, 0.8)`;
             ctx.lineWidth = 5;
-            ctx.shadowBlur = 18;
-            ctx.shadowColor = '#ef4444';
             ctx.stroke();
-            ctx.shadowBlur = 0;
-
             drawRealisticRocket(ctx, x, y);
         }
     }
@@ -1160,21 +979,17 @@
 
         let multTxt = document.getElementById('multiplierTxt');
         let status = document.getElementById('gameStatus');
-        let adminLiveTxt = document.getElementById('adminLiveMultTxt');
 
         if(gameState === 'WAITING') {
             currentMult = 1.00;
             renderCanvasScene(0, 0);
-            if(adminLiveTxt) adminLiveTxt.innerText = "1.00x";
         } else if(gameState === 'FLYING') {
             currentMult += 0.012;
             if(multTxt) multTxt.innerText = `${currentMult.toFixed(2)}x`;
             if(status) status.innerText = "ROCKET FLYING HIGH!";
-            if(adminLiveTxt) adminLiveTxt.innerText = `${currentMult.toFixed(2)}x`;
 
             let progress = Math.min(1.0, (currentMult - 1.0) / 4.0);
             let px = 30 + progress * (canvas.width - 90);
-            
             waveOffset += 0.12;
             let sineFloat = Math.sin(waveOffset) * 14; 
             let py = (canvas.height - 40) - Math.pow(progress, 0.8) * (canvas.height - 110) + sineFloat;
@@ -1190,321 +1005,13 @@
                 }
             });
 
-            let shouldCrash = false;
-            if (currentMult >= targetCrash) shouldCrash = true;
-
-            if(shouldCrash) {
-                gameState = 'CRASHED';
-                playRocketCrashSound();
-
-                if(status) status.innerText = `FLEW AWAY @ ${currentMult.toFixed(2)}x`;
-                if(ctx && canvas) ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-                betHistory.push(currentMult);
-                if(betHistory.length > 20) betHistory.shift();
-                saveData();
-                renderHistoryBar();
-
-                setTimeout(() => {
-                    [1, 2].forEach(n => {
-                        betState[n].placed = false;
-                        betState[n].cashed = false;
-                        let btn = document.getElementById(`betBtn${n}`);
-                        if(btn) {
-                            btn.innerText = `BET (${betState[n].amt.toFixed(2)} PKR)`;
-                            btn.style.background = "linear-gradient(135deg, #ef4444 0%, #b91c1c 100%)";
-                        }
-                    });
-                    startBettingCountdown();
-                }, 1500);
+            if (currentMult >= targetCrash) {
+                triggerGlobalCrashExecution();
             }
         }
     }, 100);
 
     startBettingCountdown();
-
-    let logoTaps = 0;
-    function handleSecretTap() {
-        logoTaps++;
-        if(logoTaps >= 5) {
-            logoTaps = 0;
-            document.getElementById('adminPassModal').style.display = 'flex';
-        }
-        setTimeout(() => logoTaps = 0, 3000);
-    }
-
-    document.getElementById('logoSecretClick').addEventListener('click', handleSecretTap);
-    document.getElementById('signupLogoSecretClick').addEventListener('click', handleSecretTap);
-    document.getElementById('loginLogoSecretClick').addEventListener('click', handleSecretTap);
-
-    function closeAdminPassModal() { document.getElementById('adminPassModal').style.display = 'none'; }
-    function verifyAdminPass() {
-        if(document.getElementById('adminPassInput').value === "za12id34") {
-            closeAdminPassModal();
-            document.getElementById('adminPanel').style.display = 'flex';
-            renderAdminUsers();
-        } else {
-            showPopup("Error", "Wrong Password!");
-        }
-    }
-    function closeAdmin() { document.getElementById('adminPanel').style.display = 'none'; }
-
-    function switchAdminTab(idx) {
-        document.querySelectorAll('.admin-tab').forEach((t, i) => t.classList.toggle('active', i === idx));
-        document.querySelectorAll('.admin-content').forEach((c, i) => c.style.display = (i === idx) ? 'block' : 'none');
-        
-        if(idx === 0) renderAdminUsers();
-        if(idx === 1) renderAdminBlocked();
-        if(idx === 2) renderAdminDeps();
-        if(idx === 3) renderAdminWiths();
-        if(idx === 4) updateAdminModeUI();
-        if(idx === 5) renderAdminChatsList();
-    }
-
-    function updateAdminModeUI() {
-        activeControlMode = document.getElementById('adminControlMode').value;
-        document.getElementById('mode2Box').style.display = (activeControlMode === "2") ? "block" : "none";
-        document.getElementById('mode3Box').style.display = (activeControlMode === "3") ? "block" : "none";
-        saveData();
-    }
-
-    function savePreset5Bets() {
-        let val = document.getElementById('preset5BetsInput').value;
-        preset5List = val.split(',').map(x => parseFloat(x.trim()) || 1.50);
-        presetIndex = 0;
-        saveData();
-        document.getElementById('presetStatusTxt').innerText = `Saved ${preset5List.length} bets sequence!`;
-    }
-
-    function triggerManualCrashNow() {
-        if(gameState === 'FLYING') {
-            window.forceCrashSignalValue = true;
-            saveData();
-        } else {
-            showPopup("Notice", "Rocket jab ud raha ho tabhi crash trigger hoga.");
-        }
-    }
-
-    function renderAdminUsers() {
-        let q = document.getElementById('searchUser').value.toLowerCase();
-        let list = document.getElementById('adminUsersList');
-        if(!list) return;
-        list.innerHTML = '';
-        
-        users.filter(u => !u.isBlocked && (u.name.toLowerCase().includes(q) || u.phone.includes(q))).forEach((u) => {
-            list.innerHTML += `
-                <div class="admin-card">
-                    <div style="display:flex; gap:10px; align-items:center;">
-                        <img src="${u.dp}" style="width:40px; height:40px; border-radius:50%; object-fit:cover;">
-                        <div>
-                            <b>${u.name}</b> (${u.phone})
-                            <p style="color:#22c55e;">Bal: ${u.balance.toFixed(2)} PKR | Pass: ${u.pass}</p>
-                        </div>
-                    </div>
-                    <div style="display:flex; gap:5px; margin-top:8px;">
-                        <button class="btn-custom" style="padding:4px 8px; font-size:10px; background:#f59e0b;" onclick="blockUser('${u.phone}')">Block</button>
-                        <button class="btn-custom" style="padding:4px 8px; font-size:10px;" onclick="deleteUser('${u.phone}')">Delete</button>
-                    </div>
-                </div>
-            `;
-        });
-    }
-
-    function blockUser(phone) {
-        let u = users.find(x => x.phone === phone);
-        if(u) {
-            u.isBlocked = true;
-            if(!blockedUsers.includes(phone)) blockedUsers.push(phone);
-        }
-        saveData();
-        showPopup("Blocked", `Phone ${phone} account block kar diya gaya hai.`);
-    }
-
-    function deleteUser(phone) {
-        users = users.filter(u => u.phone !== phone);
-        blockedUsers = blockedUsers.filter(p => p !== phone);
-        saveData();
-        showPopup("Deleted", `Phone ${phone} account permanent delete kar diya gaya hai.`);
-    }
-
-    function renderAdminBlocked() {
-        let q = document.getElementById('searchBlocked').value;
-        let list = document.getElementById('adminBlockedList');
-        if(!list) return;
-        list.innerHTML = '';
-        
-        let blockedAccountList = users.filter(u => u.isBlocked && u.phone.includes(q));
-        
-        blockedAccountList.forEach(u => {
-            list.innerHTML += `
-                <div class="admin-card" style="display:flex; justify-content:space-between; align-items:center;">
-                    <div>
-                        <b>${u.name}</b><br>
-                        <span>Phone: <b>${u.phone}</b></span>
-                    </div>
-                    <button class="btn-custom" style="width:auto; padding:6px 12px; font-size:11px; background:#22c55e;" onclick="unblockUser('${u.phone}')">Unblock</button>
-                </div>
-            `;
-        });
-    }
-
-    function unblockUser(phone) {
-        let u = users.find(x => x.phone === phone);
-        if(u) {
-            u.isBlocked = false;
-        }
-        blockedUsers = blockedUsers.filter(p => p !== phone);
-        saveData();
-        showPopup("Unblocked", `Phone ${phone} unblock ho gaya hai.`);
-    }
-
-    function renderAdminDeps() {
-        let list = document.getElementById('adminDepList');
-        if(!list) return;
-        list.innerHTML = '';
-        deposits.forEach((d, idx) => {
-            list.innerHTML += `
-                <div class="admin-card" id="depCard_${idx}">
-                    <b>${d.name}</b> (${d.phone})
-                    <p style="color:#38bdf8;">TRX: ${d.trx}</p>
-                    <div style="margin:6px 0;">
-                        Amount to Add: <input type="number" id="depEditAmt_${idx}" value="${d.amt}" style="width:80px; padding:4px; background:#0f172a; border:1px solid #334155; color:white;">
-                    </div>
-                    <div style="display:flex; gap:8px;">
-                        <button class="btn-custom" style="padding:6px; font-size:11px; background:#22c55e;" onclick="approveDep(${idx})">Approve</button>
-                        <button class="btn-custom" style="padding:6px; font-size:11px; background:#dc2626;" onclick="rejectDep(${idx})">Reject</button>
-                    </div>
-                </div>
-            `;
-        });
-    }
-
-    function approveDep(idx) {
-        let amtInput = document.getElementById(`depEditAmt_${idx}`);
-        let finalAmt = amtInput ? parseFloat(amtInput.value) : deposits[idx].amt;
-        let dep = deposits.splice(idx, 1)[0];
-        let u = users.find(x => x.phone === dep.phone);
-        if(u) {
-            u.balance += finalAmt;
-            if(currentUser && currentUser.phone === u.phone) currentUser.balance = u.balance;
-            if(!u.pendingNotifications) u.pendingNotifications = [];
-            u.pendingNotifications.push(`Mubarak ho! Aapka ${finalAmt.toFixed(2)} PKR ka deposit approve ho gaya hai.`);
-        }
-        saveData();
-        renderAdminDeps();
-        showPopup("Approved", "Deposit successfully approve ho gaya hai.");
-    }
-
-    function rejectDep(idx) {
-        let dep = deposits.splice(idx, 1)[0];
-        let u = users.find(x => x.phone === dep.phone);
-        if(u) {
-            if(!u.pendingNotifications) u.pendingNotifications = [];
-            u.pendingNotifications.push(`Afsos! TRX ID (${dep.trx}) wala deposit reject kar diya gaya hai.`);
-        }
-        saveData();
-        renderAdminDeps();
-        showPopup("Rejected", "Deposit request reject kar di gayi hai.");
-    }
-
-    function renderAdminWiths() {
-        let list = document.getElementById('adminWithList');
-        if(!list) return;
-        list.innerHTML = '';
-        withdraws.forEach((w, idx) => {
-            list.innerHTML += `
-                <div class="admin-card">
-                    <b>${w.name}</b> (${w.phone})
-                    <p style="color:#22c55e;">Req: ${w.amt} PKR via ${w.method} (${w.acc})</p>
-                    <div style="display:flex; gap:8px; margin-top:8px;">
-                        <button class="btn-custom" style="padding:6px; font-size:11px; background:#22c55e;" onclick="approveWith(${idx})">Approve</button>
-                        <button class="btn-custom" style="padding:6px; font-size:11px; background:#dc2626;" onclick="rejectWith(${idx})">Reject</button>
-                    </div>
-                </div>
-            `;
-        });
-    }
-
-    function approveWith(idx) {
-        let w = withdraws.splice(idx, 1)[0];
-        let u = users.find(x => x.phone === w.phone);
-        if(u) {
-            if(!u.pendingNotifications) u.pendingNotifications = [];
-            u.pendingNotifications.push(`Mubarak ho! Aapka ${w.amt} PKR ka withdraw complete ho gaya hai.`);
-        }
-        saveData();
-        renderAdminWiths();
-        showPopup("Approved", "Withdraw request approve kar di gayi hai.");
-    }
-
-    function rejectWith(idx) {
-        let w = withdraws.splice(idx, 1)[0];
-        let u = users.find(x => x.phone === w.phone);
-        if(u) {
-            u.balance += w.amt;
-            if(currentUser && currentUser.phone === u.phone) currentUser.balance = u.balance;
-            if(!u.pendingNotifications) u.pendingNotifications = [];
-            u.pendingNotifications.push(`Withdrawal reject ho gaya hai, aapke ${w.amt} PKR account mein refund kar diye gaye hain.`);
-        }
-        saveData();
-        renderAdminWiths();
-        showPopup("Rejected", "Withdraw reject kar ke user ke account mein paise refund kar diye gaye hain.");
-    }
-
-    function renderAdminChatsList() {
-        let list = document.getElementById('adminChatUserList');
-        if(!list) return;
-        list.innerHTML = '';
-        Object.keys(chats).forEach(phone => {
-            let u = users.find(x => x.phone === phone);
-            let name = u ? u.name : phone;
-            list.innerHTML += `
-                <div class="admin-card" style="cursor:pointer;" onclick="openAdminChatWith('${phone}', '${name}')">
-                    <b>${name}</b> (${phone}) - <span style="color:#ef4444;">Chat Active</span>
-                </div>
-            `;
-        });
-    }
-
-    function openAdminChatWith(phone, name) {
-        activeAdminChatPhone = phone;
-        window.activeAdminChatPhone = phone;
-        document.getElementById('adminChatTargetName').innerText = `Chat with ${name}`;
-        document.getElementById('adminActiveChatBox').style.display = 'flex';
-        renderAdminActiveChatMsgs();
-    }
-
-    function closeAdminActiveChat() {
-        document.getElementById('adminActiveChatBox').style.display = 'none';
-        activeAdminChatPhone = null;
-        window.activeAdminChatPhone = null;
-    }
-
-    function renderAdminActiveChatMsgs() {
-        if(!activeAdminChatPhone) return;
-        let box = document.getElementById('adminChatMsgs');
-        if(!box) return;
-        box.innerHTML = '';
-        (chats[activeAdminChatPhone] || []).forEach(m => {
-            let isAdm = m.sender === 'admin';
-            box.innerHTML += `
-                <div style="align-self:${isAdm ? 'flex-end' : 'flex-start'}; background:${isAdm ? '#22c55e' : '#334155'}; color:white; padding:6px 10px; border-radius:8px; font-size:12px; max-width:80%;">
-                    ${m.text}
-                </div>
-            `;
-        });
-        box.scrollTop = box.scrollHeight;
-    }
-
-    function sendAdminReply() {
-        let inp = document.getElementById('adminReplyInput');
-        if(!inp.value.trim() || !activeAdminChatPhone) return;
-        if(!chats[activeAdminChatPhone]) chats[activeAdminChatPhone] = [];
-        chats[activeAdminChatPhone].push({ sender: 'admin', text: inp.value.trim() });
-        inp.value = '';
-        saveData();
-        renderAdminActiveChatMsgs();
-    }
 
     if(currentUser) {
         showScreen('mainScreen');
