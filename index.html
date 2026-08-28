@@ -339,6 +339,11 @@
             if(serverData.activeControlMode !== undefined) activeControlMode = serverData.activeControlMode;
             if(serverData.preset5List) preset5List = serverData.preset5List;
             if(serverData.presetIndex !== undefined) presetIndex = serverData.presetIndex;
+            
+            // Mode 3 ke liye admin ki live multiplier value sync karna
+            if(serverData.liveMultiplier !== undefined) {
+                window.adminServerLiveMult = serverData.liveMultiplier;
+            }
 
             if(serverData.forceCrashSignal && gameState === 'FLYING') {
                 triggerGlobalCrashExecution();
@@ -408,6 +413,7 @@
     let countdownSec = 5;
     let countdownTimer = null;
     let waveOffset = 0;
+    window.adminServerLiveMult = 1.00;
 
     let betState = {
         1: { amt: 10.0, placed: false, cashed: false },
@@ -431,29 +437,37 @@
         initAudioEngine();
         if (!audioCtx) return;
 
-        let bufferSize = audioCtx.sampleRate * 2;
-        let noiseBuffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
-        let output = noiseBuffer.getChannelData(0);
-        for (let i = 0; i < bufferSize; i++) { output[i] = Math.random() * 2 - 1; }
+        try {
+            if (rocketEngineOsc) {
+                stopRocketThrustSound();
+            }
 
-        let whiteNoise = audioCtx.createBufferSource();
-        whiteNoise.buffer = noiseBuffer;
-        whiteNoise.loop = true;
+            let bufferSize = audioCtx.sampleRate * 3;
+            let noiseBuffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+            let output = noiseBuffer.getChannelData(0);
+            for (let i = 0; i < bufferSize; i++) {
+                output[i] = Math.random() * 2 - 1;
+            }
 
-        let filter = audioCtx.createBiquadFilter();
-        filter.type = 'lowpass';
-        filter.frequency.setValueAtTime(150, audioCtx.currentTime);
+            let whiteNoise = audioCtx.createBufferSource();
+            whiteNoise.buffer = noiseBuffer;
+            whiteNoise.loop = true;
 
-        rocketEngineGain = audioCtx.createGain();
-        rocketEngineGain.gain.setValueAtTime(0.01, audioCtx.currentTime);
-        rocketEngineGain.gain.exponentialRampToValueAtTime(0.6, audioCtx.currentTime + 1.0);
+            let filter = audioCtx.createBiquadFilter();
+            filter.type = 'lowpass';
+            filter.frequency.setValueAtTime(220, audioCtx.currentTime);
 
-        whiteNoise.connect(filter);
-        filter.connect(rocketEngineGain);
-        rocketEngineGain.connect(audioCtx.destination);
+            rocketEngineGain = audioCtx.createGain();
+            rocketEngineGain.gain.setValueAtTime(0.01, audioCtx.currentTime);
+            rocketEngineGain.gain.exponentialRampToValueAtTime(0.45, audioCtx.currentTime + 1.2);
 
-        whiteNoise.start();
-        rocketEngineOsc = whiteNoise;
+            whiteNoise.connect(filter);
+            filter.connect(rocketEngineGain);
+            rocketEngineGain.connect(audioCtx.destination);
+
+            whiteNoise.start();
+            rocketEngineOsc = whiteNoise;
+        } catch(e) {}
     }
 
     function stopRocketThrustSound() {
@@ -470,33 +484,55 @@
         }
     }
 
+    function playTakeoffSound() {
+        initAudioEngine();
+        if(!audioCtx) return;
+        try {
+            let osc = audioCtx.createOscillator();
+            let gain = audioCtx.createGain();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(120, audioCtx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(450, audioCtx.currentTime + 0.6);
+
+            gain.gain.setValueAtTime(0.5, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.6);
+
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start();
+            osc.stop(audioCtx.currentTime + 0.6);
+        } catch(e) {}
+    }
+
     function playRocketCrashSound() {
         stopRocketThrustSound();
         initAudioEngine();
         if (!audioCtx) return;
 
-        let bufferSize = audioCtx.sampleRate * 1;
-        let noiseBuffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
-        let output = noiseBuffer.getChannelData(0);
-        for (let i = 0; i < bufferSize; i++) { output[i] = Math.random() * 2 - 1; }
+        try {
+            let bufferSize = audioCtx.sampleRate * 1.5;
+            let noiseBuffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+            let output = noiseBuffer.getChannelData(0);
+            for (let i = 0; i < bufferSize; i++) { output[i] = Math.random() * 2 - 1; }
 
-        let noise = audioCtx.createBufferSource();
-        noise.buffer = noiseBuffer;
+            let noise = audioCtx.createBufferSource();
+            noise.buffer = noiseBuffer;
 
-        let filter = audioCtx.createBiquadFilter();
-        filter.type = 'lowpass';
-        filter.frequency.setValueAtTime(800, audioCtx.currentTime);
-        filter.frequency.exponentialRampToValueAtTime(30, audioCtx.currentTime + 0.8);
+            let filter = audioCtx.createBiquadFilter();
+            filter.type = 'lowpass';
+            filter.frequency.setValueAtTime(600, audioCtx.currentTime);
+            filter.frequency.exponentialRampToValueAtTime(30, audioCtx.currentTime + 1.2);
 
-        let gain = audioCtx.createGain();
-        gain.gain.setValueAtTime(0.8, audioCtx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.8);
+            let gain = audioCtx.createGain();
+            gain.gain.setValueAtTime(0.9, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 1.2);
 
-        noise.connect(filter);
-        filter.connect(gain);
-        gain.connect(audioCtx.destination);
+            noise.connect(filter);
+            filter.connect(gain);
+            gain.connect(audioCtx.destination);
 
-        noise.start();
+            noise.start();
+        } catch(e) {}
     }
 
     const canvas = document.getElementById('gameCanvas');
@@ -669,6 +705,7 @@
                 activeControlMode: activeControlMode,
                 preset5List: preset5List,
                 presetIndex: presetIndex,
+                liveMultiplier: currentMult,
                 forceCrashSignal: window.forceCrashSignalValue || false
             }).catch(err => {});
         }
@@ -927,7 +964,10 @@
 
         let activeScreen = document.querySelector('.screen.active');
         if (activeScreen && activeScreen.id === 'mainScreen') {
-            playRocketThrustSound();
+            playTakeoffSound();
+            setTimeout(() => {
+                if(gameState === 'FLYING') playRocketThrustSound();
+            }, 500);
         }
 
         [1, 2].forEach(n => {
@@ -970,6 +1010,7 @@
         }, 1500);
     }
 
+    // Updated Game Loop supporting Mode 3 live sync
     setInterval(() => {
         let activeScreen = document.querySelector('.screen.active');
         if (!activeScreen || activeScreen.id !== 'mainScreen') {
@@ -984,8 +1025,15 @@
             currentMult = 1.00;
             renderCanvasScene(0, 0);
         } else if(gameState === 'FLYING') {
-            currentMult += 0.012;
-            if(multTxt) multTxt.innerText = `${currentMult.toFixed(2)}x`;
+            
+            // Agar Mode 3 active hai, toh admin panel ka live multiplier use hoga
+            if (activeControlMode === "3" && window.adminServerLiveMult !== undefined) {
+                currentMult = window.adminServerLiveMult;
+            } else {
+                currentMult += 0.012; // Baqi modes ke liye normal flow
+            }
+
+            if(multTxt) multTxt.innerText = `${Number(currentMult).toFixed(2)}x`;
             if(status) status.innerText = "ROCKET FLYING HIGH!";
 
             let progress = Math.min(1.0, (currentMult - 1.0) / 4.0);
