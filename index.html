@@ -138,8 +138,8 @@
         </div>
     </div>
 
-    <!-- Dynamic Confirmation Warning Modal -->
-    <div class="modal-overlay" id="confirmWarningModal">
+    <!-- Dynamic Confirmation Warning Modal inside Admin/App scope -->
+    <div class="modal-overlay" id="confirmWarningModal" style="z-index: 1200;">
         <div class="modal-box">
             <div class="modal-title" id="confirmTitle" style="color: #ef4444;">Are you sure?</div>
             <div class="modal-desc" id="confirmDesc">Kya waqayi aap yeh action perform karna chahte hain?</div>
@@ -529,7 +529,7 @@
 
     function generateFreshRandomHistory() {
         let freshArr = [];
-        let pool = [1.00, 1.22, 1.35, 1.45, 1.50, 1.80, 2.10, 2.50, 3.10, 4.20, 5.00];
+        let pool = [1.00, 1.12, 1.25, 1.38, 1.45, 1.62, 1.85, 2.10, 2.45, 3.10, 4.20, 5.00];
         for(let i = 0; i < 8; i++) {
             let randVal = pool[Math.floor(Math.random() * pool.length)];
             freshArr.push(randVal);
@@ -724,7 +724,7 @@
 
     function closePopup() { document.getElementById('globalPopup').style.display = 'none'; }
 
-    // Confirmation Modal Logic for Delete/Block
+    // Admin Custom Confirmation Modal Logic
     let pendingConfirmationCallback = null;
 
     function showConfirmModal(title, desc, onYes) {
@@ -1028,7 +1028,8 @@
     function calculateNextTarget() {
         let maxCap = 5.00;
         if (activeControlMode === "1") {
-            let randomPool = [1.00, 1.15, 1.22, 1.30, 1.44, 1.50, 1.78, 1.90, 2.15, 2.40, 2.85, 3.20, 3.80, 4.25, 4.90, 5.00];
+            // Enhanced pure random pool without sequential patterns
+            let randomPool = [1.00, 1.05, 1.14, 1.21, 1.33, 1.42, 1.55, 1.68, 1.82, 1.95, 2.08, 2.25, 2.44, 2.75, 3.10, 3.50, 4.10, 4.80, 5.00];
             let randomIndex = Math.floor(Math.random() * randomPool.length);
             return Math.min(maxCap, randomPool[randomIndex]);
         } else if (activeControlMode === "2") {
@@ -1352,15 +1353,15 @@
                         </div>
                     </div>
                     <div style="display:flex; gap:5px; margin-top:8px;">
-                        <button class="btn-custom" style="padding:4px 8px; font-size:10px; background:#f59e0b;" onclick="confirmBlockUser('${u.phone}')">Block</button>
-                        <button class="btn-custom" style="padding:4px 8px; font-size:10px;" onclick="confirmDeleteUser('${u.phone}')">Delete</button>
+                        <button class="btn-custom" style="padding:6px 12px; font-size:11px; background:#f59e0b;" onclick="confirmBlockUser('${u.phone}')">Block</button>
+                        <button class="btn-custom" style="padding:6px 12px; font-size:11px; background:#dc2626;" onclick="confirmDeleteUser('${u.phone}')">Delete</button>
                     </div>
                 </div>
             `;
         });
     }
 
-    // Confirmation Triggers for Admin Actions
+    // Direct Custom Confirmation Actions inside Admin Panel
     function confirmBlockUser(phone) {
         showConfirmModal("Block Account", `Kya waqayi aap phone number ${phone} ko block karna chahte hain?`, () => {
             blockUser(phone);
@@ -1380,6 +1381,7 @@
             if(!blockedUsers.includes(phone)) blockedUsers.push(phone);
         }
         saveData();
+        renderAdminUsers();
         showPopup("Blocked", `Phone ${phone} account block kar diya gaya hai.`);
     }
 
@@ -1387,6 +1389,7 @@
         users = users.filter(u => u.phone !== phone);
         blockedUsers = blockedUsers.filter(p => p !== phone);
         saveData();
+        renderAdminUsers();
         showPopup("Deleted", `Phone ${phone} account permanent delete kar diya gaya hai.`);
     }
 
@@ -1418,6 +1421,7 @@
         }
         blockedUsers = blockedUsers.filter(p => p !== phone);
         saveData();
+        renderAdminBlocked();
         showPopup("Unblocked", `Phone ${phone} unblock ho gaya hai.`);
     }
 
