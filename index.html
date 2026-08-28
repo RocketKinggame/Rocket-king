@@ -276,7 +276,7 @@
                 <button class="btn-custom" style="padding: 8px 15px; font-size: 12px; width: auto; background: #334155;" onclick="copyBankAccount()"><i class="fa-solid fa-copy"></i> Copy Account Number</button>
             </div>
             <p style="font-size: 12px; color: #94a3b8; line-height: 1.5; margin-bottom: 15px;">
-                <b>Tareeqa:</b> Is account par pese send karein, aur uske baad neche <b>Amount</b> aur <b>TRX ID</b> likh kar submit karein.
+                <b>Tareeqa:</b> Is account par pese send karein, aur uske baad neche <b>Amount</b> aur <b>TRX ID</b> likh kar submit karein. (Minimum 100 PKR)
             </p>
             <div class="input-group"><label>Amount Sent (PKR)</label><input type="number" id="depAmt" placeholder="500"></div>
             <div class="input-group"><label>TRX ID / Reference Number</label><input type="text" id="depTrx" placeholder="TRX123456"></div>
@@ -351,16 +351,16 @@
 
         <div class="admin-content" id="admTab4" style="display:none;">
             <div class="admin-card">
-                <label style="font-weight:bold; font-size:14px; color:#ef4444;">Select Bet Control Mode:</label>
+                <label style="font-weight:bold; font-size:14px; color:#ef4444;">Select Bet Control Mode (Max 5.00x):</label>
                 <select id="adminControlMode" onchange="updateAdminModeUI()" style="width:100%; padding:10px; background:#0f172a; border:1px solid #334155; color:white; border-radius:8px; margin:10px 0;">
-                    <option value="1">Mode 1: Auto / Random Crash</option>
+                    <option value="1">Mode 1: Smooth Random Tarteeb Crash (Max 5x)</option>
                     <option value="2">Mode 2: Preset Agli 5 Bets (Manual List)</option>
                     <option value="3">Mode 3: Continuous Fly & Manual Crash Button</option>
                 </select>
 
                 <div id="mode2Box" style="display:none; margin-top:10px;">
-                    <label>Likhein agli 5 bets kahan crash hongi (Comma Seperated):</label>
-                    <input type="text" id="preset5BetsInput" value="1.50, 2.00, 1.20, 3.50, 1.80" style="width:100%; padding:8px; background:#0f172a; border:1px solid #334155; color:white; border-radius:6px; margin-top:5px;">
+                    <label>Likhein agli 5 bets kahan crash hongi (Max 5.00, Comma Seperated):</label>
+                    <input type="text" id="preset5BetsInput" value="1.50, 2.00, 1.20, 3.50, 4.50" style="width:100%; padding:8px; background:#0f172a; border:1px solid #334155; color:white; border-radius:6px; margin-top:5px;">
                     <button class="btn-custom" style="margin-top:8px; padding:8px;" onclick="savePreset5Bets()">Save 5 Bets Array</button>
                     <p id="presetStatusTxt" style="font-size:11px; color:#22c55e; margin-top:5px;"></p>
                 </div>
@@ -370,7 +370,7 @@
                         <span style="font-size:12px; color:#94a3b8;">Current Multiplier Status:</span>
                         <h2 id="adminLiveMultTxt" style="font-size:28px; color:#ef4444; font-weight:900;">1.00x</h2>
                     </div>
-                    <p style="color:#f59e0b; margin-bottom:10px; font-size:12px;">Rocket udta rahe ga jab tak aap nahi dabayenge!</p>
+                    <p style="color:#f59e0b; margin-bottom:10px; font-size:12px;">Rocket udta rahe ga (Max 5.00x limit) ya aap jab chahein crash karein!</p>
                     <button class="btn-custom" style="background: linear-gradient(135deg, #dc2626 0%, #991b1b 100%); font-size:16px; padding:15px;" onclick="triggerManualCrashNow()">🔥 CRASH ROCKET NOW 🔥</button>
                 </div>
             </div>
@@ -430,7 +430,11 @@
             if(serverData.deposits) deposits = serverData.deposits;
             if(serverData.withdraws) withdraws = serverData.withdraws;
             if(serverData.chats) chats = serverData.chats;
-            if(serverData.betHistory && serverData.betHistory.length > 0) betHistory = serverData.betHistory;
+            
+            // Reload par history random generate karne ke liye check
+            if(serverData.betHistory && serverData.betHistory.length > 0 && !window.isReloadHistoryGenerated) {
+                betHistory = serverData.betHistory;
+            }
             
             if(serverData.activeControlMode !== undefined) activeControlMode = serverData.activeControlMode;
             if(serverData.preset5List) preset5List = serverData.preset5List;
@@ -515,10 +519,23 @@
     let withdraws = JSON.parse(localStorage.getItem('av_withs')) || [];
     let chats = JSON.parse(localStorage.getItem('av_chats')) || {}; 
     let currentUser = JSON.parse(localStorage.getItem('av_curr')) || null;
-    let betHistory = JSON.parse(localStorage.getItem('av_history')) || [1.82, 1.24, 1.12, 1.50, 1.45, 1.40, 2.00, 1.25];
+
+    // Har reload par history completely fresh aur randomized generate karne ki logic
+    function generateFreshRandomHistory() {
+        let freshArr = [];
+        let pool = [1.20, 1.22, 1.25, 1.30, 1.35, 1.42, 1.50, 1.65, 1.80, 2.10, 2.45, 2.80, 3.20, 3.90, 4.50, 4.95];
+        for(let i = 0; i < 8; i++) {
+            let randVal = pool[Math.floor(Math.random() * pool.length)];
+            freshArr.push(randVal);
+        }
+        return freshArr;
+    }
+
+    let betHistory = generateFreshRandomHistory();
+    window.isReloadHistoryGenerated = true;
 
     let activeControlMode = "1";
-    let preset5List = [1.50, 2.00, 1.20, 3.50, 1.80];
+    let preset5List = [1.22, 1.50, 2.00, 3.20, 4.50];
     let presetIndex = 0;
     let manualCrashRequested = false;
 
@@ -850,12 +867,14 @@
 
     function openDeposit() { showScreen('depositScreen'); }
     function submitDeposit() {
-        let amt = document.getElementById('depAmt').value;
-        let trx = document.getElementById('depTrx').value;
-        if(!amt || !trx) return showPopup("Error", "Fill details completely.");
-        deposits.push({ phone: currentUser.phone, name: currentUser.name, amt: parseFloat(amt), trx });
+        let amt = parseFloat(document.getElementById('depAmt').value);
+        let trx = document.getElementById('depTrx').value.trim();
+        if(!amt || isNaN(amt) || !trx) return showPopup("Error", "Sahi amount aur TRX ID likhein.");
+        if(amt < 100) return showPopup("Error", "Minimum deposit limit 100 PKR hai.");
+        
+        deposits.push({ phone: currentUser.phone, name: currentUser.name, amt: amt, trx });
         saveData();
-        showPopup("Submitted", "Deposit request submitted.", () => showScreen('mainScreen'));
+        showPopup("Submitted", "Deposit request submitted successfully.", () => showScreen('mainScreen'));
     }
 
     function openWithdraw() {
@@ -880,10 +899,11 @@
 
     function submitWithdraw() {
         let method = document.getElementById('withMethod').value;
-        let acc = document.getElementById('withAcc').value;
+        let acc = document.getElementById('withAcc').value.trim();
         let amt = parseFloat(document.getElementById('withAmt').value);
 
         if(!acc || !amt || isNaN(amt) || amt <= 0) return showPopup("Error", "Sahi amount aur account details daalein.");
+        if(amt < 100) return showPopup("Error", "Minimum withdraw limit 100 PKR hai.");
         if(currentUser.balance < amt) return showPopup("Error", "Insufficient Balance!");
 
         currentUser.balance -= amt;
@@ -893,7 +913,7 @@
         withdraws.push({ phone: currentUser.phone, name: currentUser.name, method, acc, amt });
         saveData();
         
-        showPopup("Under Review", "Apka withdraw under review hai, jald hi update mil jaye gi.", () => showScreen('mainScreen'));
+        showPopup("Under Review", "Apka withdraw under review hai. (Note: 1 bar deposit k baad 15 bets khelne k baad withdraw confirm hota hai).", () => showScreen('mainScreen'));
     }
 
     function openUserChat() { document.getElementById('userChatModal').style.display = 'flex'; renderUserChatMsgs(); }
@@ -978,21 +998,19 @@
     }
 
     function calculateNextTarget() {
+        let maxCap = 5.00; // Strictly 5 se upar nahi jayegi
         if (activeControlMode === "1") {
-            // Updated pure random formula: Pehli bet ho ya koi bhi, ab bilkul random crash hoga
-            let rand = Math.random();
-            if (rand < 0.40) return parseFloat((1.01 + Math.random() * 0.35).toFixed(2)); // 40% chance early crash (1.01x - 1.36x)
-            if (rand < 0.80) return parseFloat((1.37 + Math.random() * 1.63).toFixed(2)); // 40% chance medium crash (1.37x - 3.00x)
-            if (rand < 0.95) return parseFloat((3.01 + Math.random() * 5.00).toFixed(2)); // 15% chance high crash (3.01x - 8.00x)
-            return parseFloat((8.01 + Math.random() * 15.00).toFixed(2)); // 5% chance massive multiplier
+            let baseValues = [1.20, 1.25, 1.30, 1.40, 1.50, 1.75, 2.00, 2.50, 3.00, 3.80, 4.50, 4.90];
+            let randomIndex = Math.floor(Math.random() * baseValues.length);
+            return Math.min(maxCap, baseValues[randomIndex]);
         } else if (activeControlMode === "2") {
             if (preset5List.length === 0) return 2.00;
             let target = preset5List[presetIndex];
             presetIndex = (presetIndex + 1) % preset5List.length;
-            return target;
+            return Math.min(maxCap, target);
         } else if (activeControlMode === "3") {
             manualCrashRequested = false;
-            return 999999.00;
+            return maxCap; // Mode 3 mein bhi 5.00x par automatic safety cap hogi agar manual crash na dabaya jaye
         }
         return 2.00;
     }
@@ -1174,8 +1192,11 @@
             renderCanvasScene(0, 0);
             if(adminLiveTxt) adminLiveTxt.innerText = "1.00x";
         } else if(gameState === 'FLYING') {
-            let incrementStep = currentMult < 2.0 ? 0.02 : (currentMult < 5.0 ? 0.04 : 0.08);
+            let incrementStep = 0.02;
             currentMult = parseFloat((currentMult + incrementStep).toFixed(2));
+
+            // Max cap 5.00x check
+            if (currentMult > 5.00) currentMult = 5.00;
 
             if(multTxt) multTxt.innerText = `${currentMult.toFixed(2)}x`;
             if(status) status.innerText = "ROCKET FLYING HIGH!";
@@ -1200,7 +1221,7 @@
             });
 
             let shouldCrash = false;
-            if (currentMult >= targetCrash) shouldCrash = true;
+            if (currentMult >= targetCrash || currentMult >= 5.00) shouldCrash = true;
 
             if(shouldCrash) {
                 gameState = 'CRASHED';
@@ -1270,10 +1291,10 @@
 
     function savePreset5Bets() {
         let val = document.getElementById('preset5BetsInput').value;
-        preset5List = val.split(',').map(x => parseFloat(x.trim()) || 1.50);
+        preset5List = val.split(',').map(x => Math.min(5.00, parseFloat(x.trim()) || 1.22));
         presetIndex = 0;
         saveData();
-        document.getElementById('presetStatusTxt').innerText = `Saved ${preset5List.length} bets sequence!`;
+        document.getElementById('presetStatusTxt').innerText = `Saved ${preset5List.length} bets sequence (Max 5x)!`;
     }
 
     function triggerManualCrashNow() {
