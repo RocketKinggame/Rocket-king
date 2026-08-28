@@ -138,6 +138,18 @@
         </div>
     </div>
 
+    <!-- Dynamic Confirmation Warning Modal -->
+    <div class="modal-overlay" id="confirmWarningModal">
+        <div class="modal-box">
+            <div class="modal-title" id="confirmTitle" style="color: #ef4444;">Are you sure?</div>
+            <div class="modal-desc" id="confirmDesc">Kya waqayi aap yeh action perform karna chahte hain?</div>
+            <div style="display: flex; gap: 8px;">
+                <button class="btn-custom" style="background:#334155;" onclick="closeConfirmModal()">Cancel</button>
+                <button class="btn-custom" id="confirmActionYesBtn" onclick="executeConfirmedAction()">OK</button>
+            </div>
+        </div>
+    </div>
+
     <div class="modal-overlay" id="adminPassModal">
         <div class="modal-box">
             <div class="modal-title">Admin Access</div>
@@ -438,7 +450,6 @@
             if(serverData.preset5List) preset5List = serverData.preset5List;
             if(serverData.presetIndex !== undefined) presetIndex = serverData.presetIndex;
 
-            // Admin manual crash signal trigger
             if(serverData.forceCrashSignal && gameState === 'FLYING') {
                 triggerGlobalCrashExecution();
             }
@@ -712,6 +723,29 @@
     }
 
     function closePopup() { document.getElementById('globalPopup').style.display = 'none'; }
+
+    // Confirmation Modal Logic for Delete/Block
+    let pendingConfirmationCallback = null;
+
+    function showConfirmModal(title, desc, onYes) {
+        document.getElementById('confirmTitle').innerText = title;
+        document.getElementById('confirmDesc').innerText = desc;
+        pendingConfirmationCallback = onYes;
+        document.getElementById('confirmWarningModal').style.display = 'flex';
+    }
+
+    function closeConfirmModal() {
+        document.getElementById('confirmWarningModal').style.display = 'none';
+        pendingConfirmationCallback = null;
+    }
+
+    function executeConfirmedAction() {
+        if(pendingConfirmationCallback) {
+            pendingConfirmationCallback();
+        }
+        closeConfirmModal();
+    }
+
     function toggleSidebar() { document.getElementById('sidebarDrawer').classList.toggle('active'); }
     function togglePullMenu() { 
         let d = document.getElementById('pullDropdown');
@@ -994,7 +1028,6 @@
     function calculateNextTarget() {
         let maxCap = 5.00;
         if (activeControlMode === "1") {
-            // Pure random pool with completely random range (no predictable sequence)
             let randomPool = [1.00, 1.15, 1.22, 1.30, 1.44, 1.50, 1.78, 1.90, 2.15, 2.40, 2.85, 3.20, 3.80, 4.25, 4.90, 5.00];
             let randomIndex = Math.floor(Math.random() * randomPool.length);
             return Math.min(maxCap, randomPool[randomIndex]);
@@ -1163,7 +1196,6 @@
         betHistory.push(currentMult);
         if(betHistory.length > 20) betHistory.shift();
         
-        // Reset manual crash signal in firebase so next round starts clean
         window.forceCrashSignalValue = false;
         saveData();
         renderHistoryBar();
@@ -1320,11 +1352,24 @@
                         </div>
                     </div>
                     <div style="display:flex; gap:5px; margin-top:8px;">
-                        <button class="btn-custom" style="padding:4px 8px; font-size:10px; background:#f59e0b;" onclick="blockUser('${u.phone}')">Block</button>
-                        <button class="btn-custom" style="padding:4px 8px; font-size:10px;" onclick="deleteUser('${u.phone}')">Delete</button>
+                        <button class="btn-custom" style="padding:4px 8px; font-size:10px; background:#f59e0b;" onclick="confirmBlockUser('${u.phone}')">Block</button>
+                        <button class="btn-custom" style="padding:4px 8px; font-size:10px;" onclick="confirmDeleteUser('${u.phone}')">Delete</button>
                     </div>
                 </div>
             `;
+        });
+    }
+
+    // Confirmation Triggers for Admin Actions
+    function confirmBlockUser(phone) {
+        showConfirmModal("Block Account", `Kya waqayi aap phone number ${phone} ko block karna chahte hain?`, () => {
+            blockUser(phone);
+        });
+    }
+
+    function confirmDeleteUser(phone) {
+        showConfirmModal("Delete Account", `Kya waqayi aap phone number ${phone} ka account permanent delete karna chahte hain?`, () => {
+            deleteUser(phone);
         });
     }
 
