@@ -515,7 +515,7 @@
     let withdraws = JSON.parse(localStorage.getItem('av_withs')) || [];
     let chats = JSON.parse(localStorage.getItem('av_chats')) || {}; 
     let currentUser = JSON.parse(localStorage.getItem('av_curr')) || null;
-    let betHistory = JSON.parse(localStorage.getItem('av_history')) || [1.82, 2.45, 1.12, 1.50, 3.10, 1.40, 2.00, 1.25];
+    let betHistory = JSON.parse(localStorage.getItem('av_history')) || [1.82, 1.24, 1.12, 1.50, 1.45, 1.40, 2.00, 1.25];
 
     let activeControlMode = "1";
     let preset5List = [1.50, 2.00, 1.20, 3.50, 1.80];
@@ -979,10 +979,12 @@
 
     function calculateNextTarget() {
         if (activeControlMode === "1") {
+            // Updated pure random formula: Pehli bet ho ya koi bhi, ab bilkul random crash hoga
             let rand = Math.random();
-            if (rand < 0.25) return parseFloat((1.0 + Math.random() * 0.15).toFixed(2)); // Instant crash 1.0x - 1.15x
-            if (rand < 0.70) return parseFloat((1.16 + Math.random() * 1.5).toFixed(2)); // Low crash 1.16x - 2.65x
-            return parseFloat((2.66 + Math.random() * 5.0).toFixed(2)); // High crash
+            if (rand < 0.40) return parseFloat((1.01 + Math.random() * 0.35).toFixed(2)); // 40% chance early crash (1.01x - 1.36x)
+            if (rand < 0.80) return parseFloat((1.37 + Math.random() * 1.63).toFixed(2)); // 40% chance medium crash (1.37x - 3.00x)
+            if (rand < 0.95) return parseFloat((3.01 + Math.random() * 5.00).toFixed(2)); // 15% chance high crash (3.01x - 8.00x)
+            return parseFloat((8.01 + Math.random() * 15.00).toFixed(2)); // 5% chance massive multiplier
         } else if (activeControlMode === "2") {
             if (preset5List.length === 0) return 2.00;
             let target = preset5List[presetIndex];
@@ -1089,7 +1091,6 @@
         if(multTxt) multTxt.innerText = "1.00x";
         if(status) status.innerText = `NEXT ROUND IN ${countdownSec}s`;
 
-        // Reset bet status for next round so user can place bets freshly
         [1, 2].forEach(n => {
             betState[n].placed = false;
             betState[n].cashed = false;
@@ -1173,7 +1174,6 @@
             renderCanvasScene(0, 0);
             if(adminLiveTxt) adminLiveTxt.innerText = "1.00x";
         } else if(gameState === 'FLYING') {
-            // Smooth increment format (e.g. 1.22 -> 1.24 -> 1.26)
             let incrementStep = currentMult < 2.0 ? 0.02 : (currentMult < 5.0 ? 0.04 : 0.08);
             currentMult = parseFloat((currentMult + incrementStep).toFixed(2));
 
