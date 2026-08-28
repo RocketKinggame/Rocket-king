@@ -430,7 +430,7 @@
             if(serverData.deposits) deposits = serverData.deposits;
             if(serverData.withdraws) withdraws = serverData.withdraws;
             if(serverData.chats) chats = serverData.chats;
-            if(serverData.betHistory) betHistory = serverData.betHistory;
+            if(serverData.betHistory && serverData.betHistory.length > 0) betHistory = serverData.betHistory;
             
             if(serverData.activeControlMode !== undefined) activeControlMode = serverData.activeControlMode;
             if(serverData.preset5List) preset5List = serverData.preset5List;
@@ -515,7 +515,7 @@
     let withdraws = JSON.parse(localStorage.getItem('av_withs')) || [];
     let chats = JSON.parse(localStorage.getItem('av_chats')) || {}; 
     let currentUser = JSON.parse(localStorage.getItem('av_curr')) || null;
-    let betHistory = JSON.parse(localStorage.getItem('av_history')) || [1.82, 2.45, 1.12, 5.20, 3.10, 1.40, 8.90, 1.25];
+    let betHistory = JSON.parse(localStorage.getItem('av_history')) || [1.82, 2.45, 1.12, 1.50, 3.10, 1.40, 2.00, 1.25];
 
     let activeControlMode = "1";
     let preset5List = [1.50, 2.00, 1.20, 3.50, 1.80];
@@ -675,7 +675,7 @@
         bar.innerHTML = '';
         betHistory.slice().reverse().forEach(h => {
             let colorClass = h >= 2.0 ? 'high' : 'low';
-            bar.innerHTML += `<div class="history-chip ${colorClass}">${h.toFixed(2)}x</div>`;
+            bar.innerHTML += `<div class="history-chip ${colorClass}">${Number(h).toFixed(2)}x</div>`;
         });
     }
     renderHistoryBar();
@@ -979,7 +979,10 @@
 
     function calculateNextTarget() {
         if (activeControlMode === "1") {
-            return (1.1 + Math.random() * 4.0).toFixed(2);
+            let rand = Math.random();
+            if (rand < 0.25) return parseFloat((1.0 + Math.random() * 0.15).toFixed(2)); // Instant crash 1.0x - 1.15x
+            if (rand < 0.70) return parseFloat((1.16 + Math.random() * 1.5).toFixed(2)); // Low crash 1.16x - 2.65x
+            return parseFloat((2.66 + Math.random() * 5.0).toFixed(2)); // High crash
         } else if (activeControlMode === "2") {
             if (preset5List.length === 0) return 2.00;
             let target = preset5List[presetIndex];
@@ -997,7 +1000,7 @@
         ctx.translate(x, y);
         ctx.rotate(-Math.PI / 8);
 
-        let flameLen = 50 + Math.random() * 35;
+        let flameLen = 40 + Math.random() * 25;
         let grad = ctx.createLinearGradient(-30, 0, -30 - flameLen, 0);
         grad.addColorStop(0, '#ffcc00');
         grad.addColorStop(0.4, '#ff3300');
@@ -1086,6 +1089,17 @@
         if(multTxt) multTxt.innerText = "1.00x";
         if(status) status.innerText = `NEXT ROUND IN ${countdownSec}s`;
 
+        // Reset bet status for next round so user can place bets freshly
+        [1, 2].forEach(n => {
+            betState[n].placed = false;
+            betState[n].cashed = false;
+            let btn = document.getElementById(`betBtn${n}`);
+            if(btn) {
+                btn.innerText = `BET (${betState[n].amt.toFixed(2)} PKR)`;
+                btn.style.background = "linear-gradient(135deg, #ef4444 0%, #b91c1c 100%)";
+            }
+        });
+
         if(countdownTimer) clearInterval(countdownTimer);
         countdownTimer = setInterval(() => {
             countdownSec--;
@@ -1101,6 +1115,7 @@
     function launchRound() {
         gameState = 'FLYING';
         targetCrash = calculateNextTarget();
+        currentMult = 1.00;
         waveOffset = 0;
 
         window.forceCrashSignalValue = false;
@@ -1138,15 +1153,6 @@
         renderHistoryBar();
 
         setTimeout(() => {
-            [1, 2].forEach(n => {
-                betState[n].placed = false;
-                betState[n].cashed = false;
-                let btn = document.getElementById(`betBtn${n}`);
-                if(btn) {
-                    btn.innerText = `BET (${betState[n].amt.toFixed(2)} PKR)`;
-                    btn.style.background = "linear-gradient(135deg, #ef4444 0%, #b91c1c 100%)";
-                }
-            });
             startBettingCountdown();
         }, 1500);
     }
@@ -1167,7 +1173,10 @@
             renderCanvasScene(0, 0);
             if(adminLiveTxt) adminLiveTxt.innerText = "1.00x";
         } else if(gameState === 'FLYING') {
-            currentMult += 0.012;
+            // Smooth increment format (e.g. 1.22 -> 1.24 -> 1.26)
+            let incrementStep = currentMult < 2.0 ? 0.02 : (currentMult < 5.0 ? 0.04 : 0.08);
+            currentMult = parseFloat((currentMult + incrementStep).toFixed(2));
+
             if(multTxt) multTxt.innerText = `${currentMult.toFixed(2)}x`;
             if(status) status.innerText = "ROCKET FLYING HIGH!";
             if(adminLiveTxt) adminLiveTxt.innerText = `${currentMult.toFixed(2)}x`;
@@ -1206,15 +1215,6 @@
                 renderHistoryBar();
 
                 setTimeout(() => {
-                    [1, 2].forEach(n => {
-                        betState[n].placed = false;
-                        betState[n].cashed = false;
-                        let btn = document.getElementById(`betBtn${n}`);
-                        if(btn) {
-                            btn.innerText = `BET (${betState[n].amt.toFixed(2)} PKR)`;
-                            btn.style.background = "linear-gradient(135deg, #ef4444 0%, #b91c1c 100%)";
-                        }
-                    });
                     startBettingCountdown();
                 }, 1500);
             }
