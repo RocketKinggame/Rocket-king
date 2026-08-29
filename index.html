@@ -343,10 +343,11 @@
             <div class="admin-tab" onclick="switchAdminTab(1)">Blocked Users</div>
             <div class="admin-tab" onclick="switchAdminTab(2)">Deposits</div>
             <div class="admin-tab" onclick="switchAdminTab(3)">Withdraws</div>
-            <div class="admin-tab" onclick="switchAdminTab(4)">3 Bet Control Modes</div>
+            <div class="admin-tab" onclick="switchAdminTab(4)">Bet Control (Max 3x)</div>
             <div class="admin-tab" onclick="switchAdminTab(5)">Live Active Bets</div>
             <div class="admin-tab" onclick="switchAdminTab(6)">Balances & Bonus</div>
             <div class="admin-tab" onclick="switchAdminTab(7)">Support Chat</div>
+            <div class="admin-tab" onclick="switchAdminTab(8)">Send Msg</div>
         </div>
 
         <div class="admin-content" id="admTab0">
@@ -364,16 +365,16 @@
 
         <div class="admin-content" id="admTab4" style="display:none;">
             <div class="admin-card">
-                <label style="font-weight:bold; font-size:14px; color:#ef4444;">Select Bet Control Mode (Max 5.00x):</label>
+                <label style="font-weight:bold; font-size:14px; color:#ef4444;">Select Bet Control Mode (Max 3.00x):</label>
                 <select id="adminControlMode" onchange="updateAdminModeUI()" style="width:100%; padding:10px; background:#0f172a; border:1px solid #334155; color:white; border-radius:8px; margin:10px 0;">
-                    <option value="1">Mode 1: Pure Random Crash (Unpredictable, Max 5x)</option>
-                    <option value="2">Mode 2: Preset Agli 5 Bets (Manual List, Max 5x)</option>
-                    <option value="3">Mode 3: Continuous Fly & Manual Crash Button (Max 5x)</option>
+                    <option value="1">Mode 1: Safe Random Crash (1.3x to 3.0x)</option>
+                    <option value="2">Mode 2: Preset Agli 5 Bets (Manual List, Max 3x)</option>
+                    <option value="3">Mode 3: Continuous Fly & Manual Crash Button (Max 3x)</option>
                 </select>
 
                 <div id="mode2Box" style="display:none; margin-top:10px;">
-                    <label>Likhein agli 5 bets kahan crash hongi (Max 5.00, Comma Seperated):</label>
-                    <input type="text" id="preset5BetsInput" value="1.50, 2.00, 1.20, 3.50, 4.50" style="width:100%; padding:8px; background:#0f172a; border:1px solid #334155; color:white; border-radius:6px; margin-top:5px;">
+                    <label>Likhein agli 5 bets kahan crash hongi (Max 3.00, Comma Seperated):</label>
+                    <input type="text" id="preset5BetsInput" value="1.30, 1.50, 2.00, 2.50, 2.80" style="width:100%; padding:8px; background:#0f172a; border:1px solid #334155; color:white; border-radius:6px; margin-top:5px;">
                     <button class="btn-custom" style="margin-top:8px; padding:8px;" onclick="savePreset5Bets()">Save 5 Bets Array</button>
                     <p id="presetStatusTxt" style="font-size:11px; color:#22c55e; margin-top:5px;"></p>
                 </div>
@@ -413,6 +414,24 @@
                 </div>
             </div>
         </div>
+
+        <!-- NEW TAB 8: ADMIN DIRECT MESSAGE FEATURE -->
+        <div class="admin-content" id="admTab8" style="display:none;">
+            <div class="admin-card">
+                <h4 style="color:#ef4444; margin-bottom:10px;"><i class="fa-solid fa-paper-plane"></i> Send Direct Message to Any User</h4>
+                <div class="input-group">
+                    <label>Select User</label>
+                    <select id="adminTargetUserSelect" style="width:100%; padding:10px; background:#0f172a; border:1px solid #334155; color:white; border-radius:8px; margin-bottom:10px;">
+                        <option value="">-- Choose User --</option>
+                    </select>
+                </div>
+                <div class="input-group">
+                    <label>Message / Notice Text</label>
+                    <textarea id="adminDirectMsgText" placeholder="Yahan apna message likhein..." style="width:100%; padding:10px; background:#0f172a; border:1px solid #334155; color:white; border-radius:8px; height:80px; outline:none; resize:none;"></textarea>
+                </div>
+                <button class="btn-custom" style="margin-top:5px;" onclick="sendDirectAdminBroadcast()">Send Message to User</button>
+            </div>
+        </div>
     </div>
 
 </div>
@@ -448,7 +467,6 @@
         if (snapshot.exists()) {
             let serverData = snapshot.val();
             
-            // Safety check: only update users if server array has records
             if(serverData.users && serverData.users.length > 0) {
                 users = serverData.users;
             }
@@ -504,6 +522,7 @@
                     renderAdminChatsList();
                     if(window.activeAdminChatPhone) renderAdminActiveChatMsgs();
                 }
+                if(activeTabIdx === 8) renderAdminTargetUserDropdown();
             }
 
             let chatModal = document.getElementById('userChatModal');
@@ -548,7 +567,7 @@
 
     function generateFreshRandomHistory() {
         let freshArr = [];
-        let pool = [1.00, 1.12, 1.25, 1.38, 1.45, 1.62, 1.85, 2.10, 2.45, 3.10, 4.20, 5.00];
+        let pool = [1.00, 1.12, 1.20, 1.28, 1.35, 1.45, 1.55, 1.70, 1.95, 2.20, 2.50, 3.00];
         for(let i = 0; i < 8; i++) {
             let randVal = pool[Math.floor(Math.random() * pool.length)];
             freshArr.push(randVal);
@@ -560,7 +579,7 @@
     window.isReloadHistoryGenerated = true;
 
     let activeControlMode = "1";
-    let preset5List = [1.22, 1.50, 2.00, 3.20, 4.50];
+    let preset5List = [1.20, 1.40, 1.80, 2.20, 2.80];
     let presetIndex = 0;
 
     let tempDpBase64 = "";
@@ -1057,10 +1076,12 @@
         saveData();
     }
 
+    // MULTIPLIER RESTRICTED TO MAX 3.00x (SAFE RANGE: 1.3x TO 3.0x)
     function calculateNextTarget() {
-        let maxCap = 5.00;
+        let maxCap = 3.00;
         if (activeControlMode === "1") {
-            let randomVal = 1.00 + (Math.random() * 4.00);
+            let minVal = 1.30;
+            let randomVal = minVal + (Math.random() * (maxCap - minVal));
             return Math.min(maxCap, parseFloat(randomVal.toFixed(2)));
         } else if (activeControlMode === "2") {
             if (preset5List.length === 0) return 2.00;
@@ -1262,13 +1283,13 @@
             let incrementStep = 0.02;
             currentMult = parseFloat((currentMult + incrementStep).toFixed(2));
 
-            if (currentMult > 5.00) currentMult = 5.00;
+            if (currentMult > 3.00) currentMult = 3.00;
 
             if(multTxt) multTxt.innerText = `${currentMult.toFixed(2)}x`;
             if(status) status.innerText = "ROCKET FLYING HIGH!";
             if(adminLiveTxt) adminLiveTxt.innerText = `${currentMult.toFixed(2)}x`;
 
-            let progress = Math.min(1.0, (currentMult - 1.0) / 4.0);
+            let progress = Math.min(1.0, (currentMult - 1.0) / 2.0);
             let px = 30 + progress * (canvas.width - 90);
             
             waveOffset += 0.12;
@@ -1287,7 +1308,7 @@
             });
 
             let shouldCrash = false;
-            if (currentMult >= targetCrash || currentMult >= 5.00) shouldCrash = true;
+            if (currentMult >= targetCrash || currentMult >= 3.00) shouldCrash = true;
 
             if(shouldCrash) {
                 gameState = 'CRASHED';
@@ -1355,6 +1376,7 @@
         if(idx === 5) renderAdminLiveBets();
         if(idx === 6) renderAdminUserBalances();
         if(idx === 7) renderAdminChatsList();
+        if(idx === 8) renderAdminTargetUserDropdown();
     }
 
     function updateAdminModeUI() {
@@ -1366,10 +1388,10 @@
 
     function savePreset5Bets() {
         let val = document.getElementById('preset5BetsInput').value;
-        preset5List = val.split(',').map(x => Math.min(5.00, parseFloat(x.trim()) || 1.22));
+        preset5List = val.split(',').map(x => Math.min(3.00, parseFloat(x.trim()) || 1.30));
         presetIndex = 0;
         saveData();
-        document.getElementById('presetStatusTxt').innerText = `Saved ${preset5List.length} bets sequence (Max 5x)!`;
+        document.getElementById('presetStatusTxt').innerText = `Saved ${preset5List.length} bets sequence (Max 3x)!`;
     }
 
     function triggerManualCrashNow() {
@@ -1380,6 +1402,34 @@
         } else {
             showPopup("Notice", "Rocket jab ud raha ho tabhi crash trigger hoga.");
         }
+    }
+
+    // --- ADMIN DIRECT MESSAGE FUNCTIONS ---
+    function renderAdminTargetUserDropdown() {
+        let selectElem = document.getElementById('adminTargetUserSelect');
+        if(!selectElem) return;
+        selectElem.innerHTML = '<option value="">-- Choose User --</option>';
+        users.forEach(u => {
+            selectElem.innerHTML += `<option value="${u.phone}">${u.name} (${u.phone})</option>`;
+        });
+    }
+
+    function sendDirectAdminBroadcast() {
+        let phone = document.getElementById('adminTargetUserSelect').value;
+        let msg = document.getElementById('adminDirectMsgText').value.trim();
+
+        if(!phone) return showPopup("Error", "Pehle user select karein.");
+        if(!msg) return showPopup("Error", "Message likhna lazmi hai.");
+
+        let targetUser = users.find(u => u.phone === phone);
+        if(!targetUser) return showPopup("Error", "User nahi mila.");
+
+        if(!targetUser.pendingNotifications) targetUser.pendingNotifications = [];
+        targetUser.pendingNotifications.push(`Admin Notice: ${msg}`);
+
+        saveData();
+        document.getElementById('adminDirectMsgText').value = '';
+        showPopup("Success", `Message successfully ${targetUser.name} ko bhej diya gaya hai.`);
     }
 
     function renderAdminUsers() {
@@ -1506,7 +1556,7 @@
             if(!u.pendingNotifications) u.pendingNotifications = [];
             u.pendingNotifications.push(`Mubarak ho! Aapka ${finalAmt.toFixed(2)} PKR ka deposit approve ho gaya hai.`);
         }
-        saveData(); // Save data to sync deletion and balance updates instantly
+        saveData();
         renderAdminDeps();
         showPopup("Approved", "Deposit successfully approve ho gaya hai.");
     }
@@ -1518,7 +1568,7 @@
             if(!u.pendingNotifications) u.pendingNotifications = [];
             u.pendingNotifications.push(`Afsos! Aapka deposit reject ho gaya hai, dubara koshish karein.`);
         }
-        saveData(); // Save data to sync deletion instantly
+        saveData();
         renderAdminDeps();
         showPopup("Rejected", "Deposit request reject kar di gayi hai.");
     }
@@ -1552,7 +1602,7 @@
             if(!u.pendingNotifications) u.pendingNotifications = [];
             u.pendingNotifications.push(`Mubarak ho! Aapka ${w.amt} PKR ka withdraw complete ho gaya hai.`);
         }
-        saveData(); // Save data to sync deletion instantly
+        saveData();
         renderAdminWiths();
         showPopup("Approved", "Withdraw request approve kar di gayi hai.");
     }
@@ -1566,7 +1616,7 @@
             if(!u.pendingNotifications) u.pendingNotifications = [];
             u.pendingNotifications.push(`Withdrawal reject ho gaya hai, aapke ${w.amt} PKR account mein wapis bhej diye gaye hain.`);
         }
-        saveData(); // Save data to sync deletion and refund instantly
+        saveData();
         renderAdminWiths();
         showPopup("Rejected", "Withdraw reject kar ke user ke account mein paise wapis refund kar diye gaye hain.");
     }
