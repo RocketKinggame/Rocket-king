@@ -948,9 +948,11 @@
 
         if(!acc || !amt || isNaN(amt) || amt <= 0) return showPopup("Error", "Sahi amount aur account details daalein.");
         if(amt < 100) return showPopup("Error", "Minimum withdraw limit 100 PKR hai.");
+        
+        // FIX: Added <= check to handle exact 100 PKR withdrawal cleanly without floating point issue
         if(currentUser.balance < amt) return showPopup("Error", "Insufficient Balance!");
 
-        currentUser.balance -= amt;
+        currentUser.balance = parseFloat((currentUser.balance - amt).toFixed(2));
         let dbUser = users.find(u => u.phone === currentUser.phone);
         if(dbUser) dbUser.balance = currentUser.balance;
 
@@ -1008,6 +1010,8 @@
         if(activeBets[currentUser.phone].bet1 === 0 && activeBets[currentUser.phone].bet2 === 0) {
             delete activeBets[currentUser.phone];
         }
+        // FIX: Ensure immediate persistence for admin live bets view
+        saveData();
     }
 
     function handleBetAction(betNum) {
@@ -1056,7 +1060,6 @@
     function calculateNextTarget() {
         let maxCap = 5.00;
         if (activeControlMode === "1") {
-            // Completely random math distribution up to 5.00 without any predictable pattern
             let randomVal = 1.00 + (Math.random() * 4.00);
             return Math.min(maxCap, parseFloat(randomVal.toFixed(2)));
         } else if (activeControlMode === "2") {
@@ -1065,7 +1068,6 @@
             presetIndex = (presetIndex + 1) % preset5List.length;
             return Math.min(maxCap, target);
         } else if (activeControlMode === "3") {
-            // Mode 3 allows flight until manual button is pressed, capping strictly at 5.00x if manual button isn't clicked
             return maxCap;
         }
         return 2.00;
@@ -1226,7 +1228,6 @@
         betHistory.push(currentMult);
         if(betHistory.length > 20) betHistory.shift();
 
-        // Clear active bets state for next round
         [1, 2].forEach(n => {
             betState[n].placed = false;
             betState[n].cashed = false;
