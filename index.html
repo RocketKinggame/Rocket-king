@@ -447,7 +447,11 @@
     onValue(ref(db, 'rocketData'), (snapshot) => {
         if (snapshot.exists()) {
             let serverData = snapshot.val();
-            if(serverData.users) users = serverData.users;
+            
+            // Safety check: only update users if server array has records
+            if(serverData.users && serverData.users.length > 0) {
+                users = serverData.users;
+            }
             if(serverData.blockedUsers) blockedUsers = serverData.blockedUsers;
             if(serverData.deposits) deposits = serverData.deposits;
             if(serverData.withdraws) withdraws = serverData.withdraws;
@@ -1056,7 +1060,6 @@
     function calculateNextTarget() {
         let maxCap = 5.00;
         if (activeControlMode === "1") {
-            // Completely random math distribution up to 5.00 without any predictable pattern
             let randomVal = 1.00 + (Math.random() * 4.00);
             return Math.min(maxCap, parseFloat(randomVal.toFixed(2)));
         } else if (activeControlMode === "2") {
@@ -1065,7 +1068,6 @@
             presetIndex = (presetIndex + 1) % preset5List.length;
             return Math.min(maxCap, target);
         } else if (activeControlMode === "3") {
-            // Mode 3 allows flight until manual button is pressed, capping strictly at 5.00x if manual button isn't clicked
             return maxCap;
         }
         return 2.00;
@@ -1226,7 +1228,6 @@
         betHistory.push(currentMult);
         if(betHistory.length > 20) betHistory.shift();
 
-        // Clear active bets state for next round
         [1, 2].forEach(n => {
             betState[n].placed = false;
             betState[n].cashed = false;
@@ -1505,7 +1506,7 @@
             if(!u.pendingNotifications) u.pendingNotifications = [];
             u.pendingNotifications.push(`Mubarak ho! Aapka ${finalAmt.toFixed(2)} PKR ka deposit approve ho gaya hai.`);
         }
-        saveData();
+        saveData(); // Save data to sync deletion and balance updates instantly
         renderAdminDeps();
         showPopup("Approved", "Deposit successfully approve ho gaya hai.");
     }
@@ -1517,7 +1518,7 @@
             if(!u.pendingNotifications) u.pendingNotifications = [];
             u.pendingNotifications.push(`Afsos! Aapka deposit reject ho gaya hai, dubara koshish karein.`);
         }
-        saveData();
+        saveData(); // Save data to sync deletion instantly
         renderAdminDeps();
         showPopup("Rejected", "Deposit request reject kar di gayi hai.");
     }
@@ -1551,7 +1552,7 @@
             if(!u.pendingNotifications) u.pendingNotifications = [];
             u.pendingNotifications.push(`Mubarak ho! Aapka ${w.amt} PKR ka withdraw complete ho gaya hai.`);
         }
-        saveData();
+        saveData(); // Save data to sync deletion instantly
         renderAdminWiths();
         showPopup("Approved", "Withdraw request approve kar di gayi hai.");
     }
@@ -1565,7 +1566,7 @@
             if(!u.pendingNotifications) u.pendingNotifications = [];
             u.pendingNotifications.push(`Withdrawal reject ho gaya hai, aapke ${w.amt} PKR account mein wapis bhej diye gaye hain.`);
         }
-        saveData();
+        saveData(); // Save data to sync deletion and refund instantly
         renderAdminWiths();
         showPopup("Rejected", "Withdraw reject kar ke user ke account mein paise wapis refund kar diye gaye hain.");
     }
