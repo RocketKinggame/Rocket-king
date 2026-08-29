@@ -138,7 +138,6 @@
         </div>
     </div>
 
-    <!-- Dynamic Confirmation Warning Modal inside Admin/App scope -->
     <div class="modal-overlay" id="confirmWarningModal" style="z-index: 1200;">
         <div class="modal-box">
             <div class="modal-title" id="confirmTitle" style="color: #ef4444;">Are you sure?</div>
@@ -345,7 +344,9 @@
             <div class="admin-tab" onclick="switchAdminTab(2)">Deposits</div>
             <div class="admin-tab" onclick="switchAdminTab(3)">Withdraws</div>
             <div class="admin-tab" onclick="switchAdminTab(4)">3 Bet Control Modes</div>
-            <div class="admin-tab" onclick="switchAdminTab(5)">Support Chat</div>
+            <div class="admin-tab" onclick="switchAdminTab(5)">Live Active Bets</div>
+            <div class="admin-tab" onclick="switchAdminTab(6)">Balances & Bonus</div>
+            <div class="admin-tab" onclick="switchAdminTab(7)">Support Chat</div>
         </div>
 
         <div class="admin-content" id="admTab0">
@@ -365,9 +366,9 @@
             <div class="admin-card">
                 <label style="font-weight:bold; font-size:14px; color:#ef4444;">Select Bet Control Mode (Max 5.00x):</label>
                 <select id="adminControlMode" onchange="updateAdminModeUI()" style="width:100%; padding:10px; background:#0f172a; border:1px solid #334155; color:white; border-radius:8px; margin:10px 0;">
-                    <option value="1">Mode 1: Pure Random Crash (No Pattern)</option>
-                    <option value="2">Mode 2: Preset Agli 5 Bets (Manual List)</option>
-                    <option value="3">Mode 3: Continuous Fly & Manual Crash Button</option>
+                    <option value="1">Mode 1: Pure Random Crash (Unpredictable, Max 5x)</option>
+                    <option value="2">Mode 2: Preset Agli 5 Bets (Manual List, Max 5x)</option>
+                    <option value="3">Mode 3: Continuous Fly & Manual Crash Button (Max 5x)</option>
                 </select>
 
                 <div id="mode2Box" style="display:none; margin-top:10px;">
@@ -389,6 +390,16 @@
         </div>
 
         <div class="admin-content" id="admTab5" style="display:none;">
+            <p style="font-size:12px; color:#94a3b8; margin-bottom:10px;">Live active bets placed by users in current/next round:</p>
+            <div id="adminLiveBetsList"></div>
+        </div>
+
+        <div class="admin-content" id="admTab6" style="display:none;">
+            <input type="text" class="search-bar" id="searchUserBal" placeholder="Search user by name or phone..." oninput="renderAdminUserBalances()">
+            <div id="adminUserBalancesList"></div>
+        </div>
+
+        <div class="admin-content" id="admTab7" style="display:none;">
             <div id="adminChatUserList"></div>
             <div id="adminActiveChatBox" style="display:none; flex-direction:column; height:300px; background:#1e293b; border-radius:10px; padding:10px; margin-top:10px;">
                 <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
@@ -441,6 +452,7 @@
             if(serverData.deposits) deposits = serverData.deposits;
             if(serverData.withdraws) withdraws = serverData.withdraws;
             if(serverData.chats) chats = serverData.chats;
+            if(serverData.activeBets) activeBets = serverData.activeBets;
             
             if(serverData.betHistory && serverData.betHistory.length > 0 && !window.isReloadHistoryGenerated) {
                 betHistory = serverData.betHistory;
@@ -482,7 +494,9 @@
                 if(activeTabIdx === 1) renderAdminBlocked();
                 if(activeTabIdx === 2) renderAdminDeps();
                 if(activeTabIdx === 3) renderAdminWiths();
-                if(activeTabIdx === 5) {
+                if(activeTabIdx === 5) renderAdminLiveBets();
+                if(activeTabIdx === 6) renderAdminUserBalances();
+                if(activeTabIdx === 7) {
                     renderAdminChatsList();
                     if(window.activeAdminChatPhone) renderAdminActiveChatMsgs();
                 }
@@ -525,6 +539,7 @@
     let deposits = JSON.parse(localStorage.getItem('av_deps')) || [];
     let withdraws = JSON.parse(localStorage.getItem('av_withs')) || [];
     let chats = JSON.parse(localStorage.getItem('av_chats')) || {}; 
+    let activeBets = JSON.parse(localStorage.getItem('av_active_bets')) || {};
     let currentUser = JSON.parse(localStorage.getItem('av_curr')) || null;
 
     function generateFreshRandomHistory() {
@@ -724,7 +739,6 @@
 
     function closePopup() { document.getElementById('globalPopup').style.display = 'none'; }
 
-    // Admin Custom Confirmation Modal Logic
     let pendingConfirmationCallback = null;
 
     function showConfirmModal(title, desc, onYes) {
@@ -853,6 +867,7 @@
         localStorage.setItem('av_deps', JSON.stringify(deposits));
         localStorage.setItem('av_withs', JSON.stringify(withdraws));
         localStorage.setItem('av_chats', JSON.stringify(chats));
+        localStorage.setItem('av_active_bets', JSON.stringify(activeBets));
         localStorage.setItem('av_history', JSON.stringify(betHistory));
         if(currentUser) localStorage.setItem('av_curr', JSON.stringify(currentUser));
         
@@ -863,6 +878,7 @@
                 deposits: deposits,
                 withdraws: withdraws,
                 chats: chats,
+                activeBets: activeBets,
                 betHistory: betHistory,
                 activeControlMode: activeControlMode,
                 preset5List: preset5List,
@@ -941,7 +957,7 @@
         withdraws.push({ phone: currentUser.phone, name: currentUser.name, method, acc, amt });
         saveData();
         
-        showPopup("Under Review", "Apka withdraw under review hai. (Note: 1 bar deposit k baad 15 bets khelne k baad withdraw confirm hoga).", () => showScreen('mainScreen'));
+        showPopup("Under Review", "Apka withdraw under review hai.", () => showScreen('mainScreen'));
     }
 
     function openUserChat() { document.getElementById('userChatModal').style.display = 'flex'; renderUserChatMsgs(); }
@@ -985,6 +1001,15 @@
         }
     }
 
+    function updateActiveBetsRecord(betNum, isPlaced, amt) {
+        if(!activeBets[currentUser.phone]) activeBets[currentUser.phone] = { name: currentUser.name, bet1: 0, bet2: 0 };
+        if(betNum === 1) activeBets[currentUser.phone].bet1 = isPlaced ? amt : 0;
+        if(betNum === 2) activeBets[currentUser.phone].bet2 = isPlaced ? amt : 0;
+        if(activeBets[currentUser.phone].bet1 === 0 && activeBets[currentUser.phone].bet2 === 0) {
+            delete activeBets[currentUser.phone];
+        }
+    }
+
     function handleBetAction(betNum) {
         let b = betState[betNum];
         let btn = document.getElementById(`betBtn${betNum}`);
@@ -998,6 +1023,7 @@
 
                 b.placed = true;
                 b.cashed = false;
+                updateActiveBetsRecord(betNum, true, b.amt);
                 btn.innerText = "CANCEL BET (WAITING...)";
                 btn.style.background = "linear-gradient(135deg, #f97316 0%, #c2410c 100%)";
             } else {
@@ -1007,6 +1033,7 @@
 
                 b.placed = false;
                 b.cashed = false;
+                updateActiveBetsRecord(betNum, false, 0);
                 btn.innerText = `BET (${b.amt.toFixed(2)} PKR)`;
                 btn.style.background = "linear-gradient(135deg, #ef4444 0%, #b91c1c 100%)";
             }
@@ -1018,6 +1045,7 @@
                 if(dbUser) dbUser.balance = currentUser.balance;
 
                 b.cashed = true;
+                updateActiveBetsRecord(betNum, false, 0);
                 btn.innerText = `CASHED (${winAmt.toFixed(2)} PKR)`;
                 btn.style.background = "linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)";
             }
@@ -1028,16 +1056,16 @@
     function calculateNextTarget() {
         let maxCap = 5.00;
         if (activeControlMode === "1") {
-            // Enhanced pure random pool without sequential patterns
-            let randomPool = [1.00, 1.05, 1.14, 1.21, 1.33, 1.42, 1.55, 1.68, 1.82, 1.95, 2.08, 2.25, 2.44, 2.75, 3.10, 3.50, 4.10, 4.80, 5.00];
-            let randomIndex = Math.floor(Math.random() * randomPool.length);
-            return Math.min(maxCap, randomPool[randomIndex]);
+            // Completely random math distribution up to 5.00 without any predictable pattern
+            let randomVal = 1.00 + (Math.random() * 4.00);
+            return Math.min(maxCap, parseFloat(randomVal.toFixed(2)));
         } else if (activeControlMode === "2") {
             if (preset5List.length === 0) return 2.00;
             let target = preset5List[presetIndex];
             presetIndex = (presetIndex + 1) % preset5List.length;
             return Math.min(maxCap, target);
         } else if (activeControlMode === "3") {
+            // Mode 3 allows flight until manual button is pressed, capping strictly at 5.00x if manual button isn't clicked
             return maxCap;
         }
         return 2.00;
@@ -1138,12 +1166,13 @@
         if(status) status.innerText = `NEXT ROUND IN ${countdownSec}s`;
 
         [1, 2].forEach(n => {
-            betState[n].placed = false;
-            betState[n].cashed = false;
-            let btn = document.getElementById(`betBtn${n}`);
-            if(btn) {
-                btn.innerText = `BET (${betState[n].amt.toFixed(2)} PKR)`;
-                btn.style.background = "linear-gradient(135deg, #ef4444 0%, #b91c1c 100%)";
+            if(!betState[n].placed) {
+                betState[n].cashed = false;
+                let btn = document.getElementById(`betBtn${n}`);
+                if(btn) {
+                    btn.innerText = `BET (${betState[n].amt.toFixed(2)} PKR)`;
+                    btn.style.background = "linear-gradient(135deg, #ef4444 0%, #b91c1c 100%)";
+                }
             }
         });
 
@@ -1196,6 +1225,13 @@
 
         betHistory.push(currentMult);
         if(betHistory.length > 20) betHistory.shift();
+
+        // Clear active bets state for next round
+        [1, 2].forEach(n => {
+            betState[n].placed = false;
+            betState[n].cashed = false;
+        });
+        activeBets = {};
         
         window.forceCrashSignalValue = false;
         saveData();
@@ -1261,6 +1297,13 @@
 
                 betHistory.push(currentMult);
                 if(betHistory.length > 20) betHistory.shift();
+                
+                [1, 2].forEach(n => {
+                    betState[n].placed = false;
+                    betState[n].cashed = false;
+                });
+                activeBets = {};
+
                 saveData();
                 renderHistoryBar();
 
@@ -1308,7 +1351,9 @@
         if(idx === 2) renderAdminDeps();
         if(idx === 3) renderAdminWiths();
         if(idx === 4) updateAdminModeUI();
-        if(idx === 5) renderAdminChatsList();
+        if(idx === 5) renderAdminLiveBets();
+        if(idx === 6) renderAdminUserBalances();
+        if(idx === 7) renderAdminChatsList();
     }
 
     function updateAdminModeUI() {
@@ -1361,7 +1406,6 @@
         });
     }
 
-    // Direct Custom Confirmation Actions inside Admin Panel
     function confirmBlockUser(phone) {
         showConfirmModal("Block Account", `Kya waqayi aap phone number ${phone} ko block karna chahte hain?`, () => {
             blockUser(phone);
@@ -1429,6 +1473,10 @@
         let list = document.getElementById('adminDepList');
         if(!list) return;
         list.innerHTML = '';
+        if(deposits.length === 0) {
+            list.innerHTML = '<p style="color:#94a3b8; text-align:center;">No pending deposit requests.</p>';
+            return;
+        }
         deposits.forEach((d, idx) => {
             list.innerHTML += `
                 <div class="admin-card" id="depCard_${idx}">
@@ -1467,7 +1515,7 @@
         let u = users.find(x => x.phone === dep.phone);
         if(u) {
             if(!u.pendingNotifications) u.pendingNotifications = [];
-            u.pendingNotifications.push(`Afsos! TRX ID (${dep.trx}) wala deposit reject kar diya gaya hai.`);
+            u.pendingNotifications.push(`Afsos! Aapka deposit reject ho gaya hai, dubara koshish karein.`);
         }
         saveData();
         renderAdminDeps();
@@ -1478,6 +1526,10 @@
         let list = document.getElementById('adminWithList');
         if(!list) return;
         list.innerHTML = '';
+        if(withdraws.length === 0) {
+            list.innerHTML = '<p style="color:#94a3b8; text-align:center;">No pending withdraw requests.</p>';
+            return;
+        }
         withdraws.forEach((w, idx) => {
             list.innerHTML += `
                 <div class="admin-card">
@@ -1511,11 +1563,78 @@
             u.balance += w.amt;
             if(currentUser && currentUser.phone === u.phone) currentUser.balance = u.balance;
             if(!u.pendingNotifications) u.pendingNotifications = [];
-            u.pendingNotifications.push(`Withdrawal reject ho gaya hai, aapke ${w.amt} PKR account mein refund kar diye gaye hain.`);
+            u.pendingNotifications.push(`Withdrawal reject ho gaya hai, aapke ${w.amt} PKR account mein wapis bhej diye gaye hain.`);
         }
         saveData();
         renderAdminWiths();
-        showPopup("Rejected", "Withdraw reject kar ke user ke account mein paise refund kar diye gaye hain.");
+        showPopup("Rejected", "Withdraw reject kar ke user ke account mein paise wapis refund kar diye gaye hain.");
+    }
+
+    function renderAdminLiveBets() {
+        let list = document.getElementById('adminLiveBetsList');
+        if(!list) return;
+        list.innerHTML = '';
+        let keys = Object.keys(activeBets);
+        if(keys.length === 0) {
+            list.innerHTML = '<p style="color:#94a3b8; text-align:center;">No active bets placed right now.</p>';
+            return;
+        }
+        keys.forEach(phone => {
+            let info = activeBets[phone];
+            list.innerHTML += `
+                <div class="admin-card">
+                    <b>${info.name}</b> (${phone})<br>
+                    <span style="color:#38bdf8;">Bet 1: <b>${info.bet1} PKR</b> | Bet 2: <b>${info.bet2} PKR</b></span>
+                </div>
+            `;
+        });
+    }
+
+    function renderAdminUserBalances() {
+        let q = document.getElementById('searchUserBal').value.toLowerCase();
+        let list = document.getElementById('adminUserBalancesList');
+        if(!list) return;
+        list.innerHTML = '';
+
+        users.filter(u => u.name.toLowerCase().includes(q) || u.phone.includes(q)).forEach((u, index) => {
+            list.innerHTML += `
+                <div class="admin-card">
+                    <b>${u.name}</b> (${u.phone})
+                    <p style="color:#22c55e; margin:4px 0;">Current Balance: <b>${u.balance.toFixed(2)} PKR</b></p>
+                    <div style="display:flex; gap:6px; margin-top:8px;">
+                        <input type="number" id="balEditAmt_${index}" placeholder="Amount" style="width:90px; padding:4px; background:#0f172a; border:1px solid #334155; color:white; border-radius:6px;">
+                        <button class="btn-custom" style="padding:6px 10px; font-size:11px; background:#22c55e;" onclick="modifyUserBalance('${u.phone}', ${index}, 'add')">Add Bonus</button>
+                        <button class="btn-custom" style="padding:6px 10px; font-size:11px; background:#dc2626;" onclick="modifyUserBalance('${u.phone}', ${index}, 'cut')">Cut Balance</button>
+                    </div>
+                </div>
+            `;
+        });
+    }
+
+    function modifyUserBalance(phone, index, actionType) {
+        let inputElem = document.getElementById(`balEditAmt_${index}`);
+        let val = parseFloat(inputElem.value);
+        if(!val || isNaN(val) || val <= 0) return showPopup("Error", "Sahi amount likhein.");
+
+        let u = users.find(x => x.phone === phone);
+        if(!u) return;
+
+        if(actionType === 'add') {
+            u.balance += val;
+            if(!u.pendingNotifications) u.pendingNotifications = [];
+            u.pendingNotifications.push(`Mubarak ho! Aapko ${val.toFixed(2)} PKR ka bonus mila hai.`);
+            showPopup("Success", `${val.toFixed(2)} PKR user ke account mein add kar diye gaye hain.`);
+        } else {
+            if(u.balance < val) return showPopup("Error", "User ke paas itna balance nahi hai.");
+            u.balance -= val;
+            showPopup("Success", `${val.toFixed(2)} PKR user ke account se kaat liye gaye hain.`);
+        }
+
+        if(currentUser && currentUser.phone === u.phone) {
+            currentUser.balance = u.balance;
+        }
+        saveData();
+        renderAdminUserBalances();
     }
 
     function renderAdminChatsList() {
