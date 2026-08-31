@@ -1005,23 +1005,29 @@
     }
 
     function adjustBet(betNum, val) {
+        // Agar bet lag chuki hai (placed == true) toh plus/minus kaam nahi karega
+        if (betState[betNum].placed) return;
+
         let inputElem = document.getElementById(`betInput${betNum}`);
         let curVal = parseFloat(inputElem.value) || 10;
         let newVal = Math.max(10, curVal + val);
         inputElem.value = newVal;
         betState[betNum].amt = newVal;
-        if(!betState[betNum].placed) {
-            document.getElementById(`betBtn${betNum}`).innerText = `BET (${newVal.toFixed(2)} PKR)`;
-        }
+        document.getElementById(`betBtn${betNum}`).innerText = `BET (${newVal.toFixed(2)} PKR)`;
     }
 
     function syncBetInput(betNum) {
         let inputElem = document.getElementById(`betInput${betNum}`);
+        
+        // Agar bet lag chuki hai toh input change ko reset kar do purani amount par
+        if (betState[betNum].placed) {
+            inputElem.value = betState[betNum].amt;
+            return;
+        }
+
         let val = parseFloat(inputElem.value) || 10;
         betState[betNum].amt = val;
-        if(!betState[betNum].placed) {
-            document.getElementById(`betBtn${betNum}`).innerText = `BET (${val.toFixed(2)} PKR)`;
-        }
+        document.getElementById(`betBtn${betNum}`).innerText = `BET (${val.toFixed(2)} PKR)`;
     }
 
     function updateActiveBetsRecord(betNum, isPlaced, amt) {
@@ -1040,6 +1046,10 @@
         if(gameState === 'WAITING') {
             if(!b.placed) {
                 if(currentUser.balance < b.amt) return showPopup("Low Balance", "Aapke paas balance kam hai.");
+                
+                // Bet lagte hi input box ko disable kar do taake user edit na kar sake
+                document.getElementById(`betInput${betNum}`).disabled = true;
+
                 currentUser.balance -= b.amt;
                 let dbUser = users.find(u => u.phone === currentUser.phone);
                 if(dbUser) dbUser.balance = currentUser.balance;
@@ -1050,6 +1060,9 @@
                 btn.innerText = "CANCEL BET (WAITING...)";
                 btn.style.background = "linear-gradient(135deg, #f97316 0%, #c2410c 100%)";
             } else {
+                // Cancel bet karne par input box dubara enable kar do
+                document.getElementById(`betInput${betNum}`).disabled = false;
+
                 currentUser.balance += b.amt;
                 let dbUser = users.find(u => u.phone === currentUser.phone);
                 if(dbUser) dbUser.balance = currentUser.balance;
@@ -1191,6 +1204,8 @@
         [1, 2].forEach(n => {
             if(!betState[n].placed) {
                 betState[n].cashed = false;
+                // Round start hone par input boxes ko dubara enable kar do
+                document.getElementById(`betInput${n}`).disabled = false;
                 let btn = document.getElementById(`betBtn${n}`);
                 if(btn) {
                     btn.innerText = `BET (${betState[n].amt.toFixed(2)} PKR)`;
@@ -1227,6 +1242,9 @@
 
         [1, 2].forEach(n => {
             let b = betState[n];
+            // Agar round shuru ho gaya aur bet placed hai toh input ko mazeed pakka disable rakhna hai
+            document.getElementById(`betInput${n}`).disabled = true;
+
             if(b.placed && !b.cashed) {
                 let btn = document.getElementById(`betBtn${n}`);
                 if(btn) {
@@ -1252,6 +1270,7 @@
         [1, 2].forEach(n => {
             betState[n].placed = false;
             betState[n].cashed = false;
+            document.getElementById(`betInput${n}`).disabled = false;
         });
         activeBets = {};
         
@@ -1323,6 +1342,7 @@
                 [1, 2].forEach(n => {
                     betState[n].placed = false;
                     betState[n].cashed = false;
+                    document.getElementById(`betInput${n}`).disabled = false;
                 });
                 activeBets = {};
 
